@@ -1,0 +1,306 @@
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Ensure it takes at least full viewport height */
+  background-color: transparent; /* Make page background transparent */
+  color: #e0e0e0; /* Ash-white text */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', /* Keep existing font stack */
+  sans-serif;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  background-color: #2b2b2b; /* Slightly lighter dark shade */
+  border-bottom: 1px solid #444;
+  flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+.dashboard-user-info {
+  font-size: 1rem;
+  /* Apply the gradient from auth-button */
+  background-image: linear-gradient(135deg, #20bf55, #01baef);
+  background-clip: text;
+  -webkit-background-clip: text; /* For Safari/WebKit */
+  color: transparent; /* Make the text color transparent to show the gradient */
+}
+
+.logout-button {
+  display: inline-flex; /* Align icon and text */
+  align-items: center;
+  gap: 8px; /* Space between icon and text */
+  padding: 8px 15px;
+  background-color: #dc3545; /* Red leave button */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.logout-button:hover {
+  background-color: #c82333;
+}
+
+.dashboard-main {
+  flex-grow: 1; /* Allow main content to grow and fill available space */
+  overflow-y: auto; /* Add vertical scrollbar ONLY if content overflows */
+  padding: 30px;
+  max-width: 900px; /* Limit content width */
+  margin: 0 auto; /* Center content */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dashboard-main h1 {
+  color: #ffffff;
+  border-bottom: 1px solid #555;
+  padding-bottom: 10px;
+  margin-bottom: 30px;
+}
+
+.dashboard-section {
+  /*background-color: #2b2b2b;*/
+  background-color: rgba(43, 43, 43, 0.9); /* Slightly transparent background */
+  padding: 25px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-section h2 {
+  display: flex; /* Align icon and text */
+  align-items: center;
+  gap: 10px; /* Space between icon and text */
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #ffffff;
+}
+
+.dashboard-section p {
+  color: #b0b0b0;
+  margin-bottom: 20px;
+}
+
+.join-room-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.dashboard-input {
+  flex-grow: 1; /* Take available space */
+  padding: 10px 12px;
+  border: 1px solid #555;
+  background-color: #3c3c3c;
+  color: #e0e0e0;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.dashboard-button {
+  /* Using styles similar to auth-button */
+  padding: 10px 20px;
+  background-color: #6c757d; /* Greyish button */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.dashboard-button.primary {
+  /* background-color: #007bff; Remove old background */
+  background-image: linear-gradient(135deg, #20bf55, #01baef); /* Sea green gradient */
+  border: none; /* Remove border if any */
+  color: white; /* Ensure text is readable */
+}
+
+.dashboard-button:hover {
+  background-color: #5a6268; /* Darker grey */
+}
+
+.dashboard-button.primary:hover {
+  /* background-color: #0056b3; Remove old hover */
+  background-image: linear-gradient(135deg, #1aa34a, #01a8d4); /* Slightly darker gradient on hover */
+  opacity: 0.9; /* Or slightly adjust opacity */
+}
+
+.header-logo {
+  height: 35px; /* Adjust height as needed */
+  width: auto;  /* Maintain aspect ratio */
+  display: block; /* Ensure it behaves as a block element */
+}
+
+.dashboard-header {
+  /* ... other styles ... */
+  display: flex;             /* Arranges items in a row */
+  justify-content: space-between; /* Pushes items to ends (or use flex-start for left alignment) */
+  align-items: center;       /* Vertically centers items in the header */
+  padding: 0.75rem 1.5rem;   /* Adds space inside the header */
+  gap: 1rem;                 /* Adds space *between* the items (logo, user info, etc.) */
+}
+
+/* Add these styles to UserDashboard.css and AdminDashboard.css */
+
+/* Container for the profile trigger and dropdown */
+.profile-dropdown-container {
+  position: relative; /* Needed for absolute positioning of the dropdown */
+  display: flex;
+  align-items: center;
+}
+
+/* Button that triggers the dropdown */
+.profile-trigger-button {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 20px; /* Rounded corners */
+  transition: background-color 0.2s ease;
+  color: #e0e0e0; /* Match text color */
+}
+
+.profile-trigger-button:hover {
+  background-color: rgba(255, 255, 255, 0.1); /* Slight highlight on hover */
+}
+
+/* Styles for the profile picture/icon */
+.profile-picture-icon {
+  width: 32px; /* Adjust size as needed */
+  height: 32px;
+  border-radius: 50%; /* Make it round */
+  margin-right: 10px;
+  object-fit: cover; /* Ensure image covers the area */
+  background-color: #555; /* Fallback background for default icon */
+  display: inline-flex; /* Helps center icon if using SVG */
+  align-items: center;
+  justify-content: center;
+  color: #ccc; /* Color for default icon */
+  font-size: 18px; /* Size for default icon */
+}
+
+.profile-picture-icon.default-icon {
+  /* Specific styles if needed when no image URL is present */
+}
+
+/* Username text next to the icon */
+.profile-username {
+  margin-right: 8px;
+  font-size: 0.9rem;
+}
+
+.profile-username strong {
+    font-weight: 600; /* Make username slightly bolder */
+}
+
+/* Dropdown arrow icon */
+.dropdown-arrow {
+  margin-left: auto; /* Pushes arrow to the right if needed */
+  transition: transform 0.2s ease;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg); /* Flip arrow when open */
+}
+
+/* The dropdown menu itself */
+.profile-dropdown-menu {
+  position: absolute;
+  top: 100%; /* Position below the trigger button */
+  right: 0; /* Align to the right */
+  background-color: #3a3a3a; /* Dark background */
+  border: 1px solid #555;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  min-width: 160px; /* Minimum width */
+  z-index: 100; /* Ensure it's above other content */
+  margin-top: 8px; /* Small space between button and menu */
+  overflow: hidden; /* Clip rounded corners */
+  padding: 5px 0; /* Padding top/bottom */
+}
+
+/* Individual items in the dropdown */
+.dropdown-item {
+  display: flex; /* Use flex for icon alignment */
+  align-items: center;
+  padding: 10px 15px;
+  color: #e0e0e0;
+  text-decoration: none;
+  font-size: 0.9rem;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: #4f4f4f; /* Hover background */
+  color: #fff;
+}
+
+/* Specific styling for the logout button */
+.dropdown-item.logout {
+  color: #ff6b6b; /* Reddish color for logout */
+  border-top: 1px solid #555; /* Separator line */
+  margin-top: 5px; /* Space above separator */
+  padding-top: 10px;
+}
+
+.dropdown-item.logout:hover {
+  color: #ff4d4d;
+  background-color: rgba(255, 107, 107, 0.1); /* Slight red background on hover */
+}
+
+.dropdown-item svg {
+  margin-right: 10px; /* Space between icon and text */
+  vertical-align: middle;
+}
+
+/* Remove default button styling if needed */
+button.dropdown-item {
+    font-family: inherit; /* Inherit font */
+}
+
+/* Hide the old separate logout button if it still exists */
+.logout-button {
+    display: none; /* Hide the old button if you haven't removed it */
+}
+
+/* --- Responsive Adjustments --- */
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    padding: 10px 15px; /* Less padding */
+    gap: 0.5rem; /* Reduce gap */
+  }
+  .dashboard-main {
+    padding: 20px; /* Less padding */
+  }
+  .dashboard-section h2 {
+    font-size: 1.1rem;
+  }
+  .join-room-controls {
+    flex-direction: column; /* Stack input and button */
+    align-items: stretch; /* Make items full width */
+  }
+  .dashboard-button {
+    width: 100%; /* Make buttons full width */
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-username {
+    display: none; /* Hide username text on very small screens */
+  }
+}

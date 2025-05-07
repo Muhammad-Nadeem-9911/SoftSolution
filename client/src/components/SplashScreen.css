@@ -1,0 +1,75 @@
+.splash-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Full viewport height */
+    background-color: #1a1a1a; /* Dark background */
+    color: #e0e0e0; /* Ash-white text */
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    overflow: hidden; /* Prevent scrollbars */
+    /* Add a subtle fade-in animation */
+    animation: fadeIn 1s ease-in-out;
+  }
+  
+  .splash-content {
+    /* Add a subtle zoom-in effect */
+    animation: zoomIn 1s ease-in-out;
+  }
+  
+  
+  .splash-logo {
+    max-width: 580px; /* Limit the maximum width */
+    filter: brightness(1.2); /* Make it 20% brighter */
+    height: auto;     /* Maintain aspect ratio */
+  }
+  .splash-title {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    color: #ffffff; /* Brighter white for title */
+  }
+  
+  .splash-tagline {
+    margin-top: -150px;
+    font-size: 1.9rem;
+    font-weight: bold;
+    color: #b0b0b0; /* Slightly dimmer ash */
+  }
+  
+  .splash-loader {
+    border: 4px solid #555; /* Light grey */
+    border-top: 4px solid #e0e0e0; /* Ash White */
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1.5s linear infinite;
+    margin: 0 auto; /* Center the loader */
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes zoomIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+/* --- Responsive Adjustments --- */
+
+@media (max-width: 480px) {
+  .splash-logo {
+    max-width: 70%; /* Adjust logo size */
+  }
+  .splash-tagline {
+    font-size: 1.5rem; /* Adjust tagline size */
+  }
+}

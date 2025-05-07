@@ -1,0 +1,150 @@
+/* Styles for ManagerDashboard - similar to UserDashboard.css and AdminDashboard.css */
+.dashboard-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #1a1a1a; /* Dark background */
+    color: #e0e0e0; /* Light text */
+    position: relative; /* For background animation positioning */
+    overflow-x: hidden; /* Prevent horizontal scroll from animation */
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background-color: rgba(45, 45, 45, 0.8); /* Semi-transparent dark header */
+    backdrop-filter: blur(5px);
+    border-bottom: 1px solid #3a3a3a;
+    position: sticky;
+    top: 0;
+    z-index: 1000; /* Ensure header is above background animation */
+}
+
+.header-logo {
+    height: 40px; /* Adjust as needed */
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+}
+
+/* Profile Dropdown Styles (re-use from User/Admin Dashboard if identical) */
+.profile-dropdown-container {
+    position: relative;
+}
+
+.profile-trigger-button {
+    background: none;
+    border: none;
+    color: #e0e0e0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.profile-picture-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 8px;
+    object-fit: cover;
+    border: 1px solid #555;
+}
+
+.profile-picture-icon.default-icon {
+    padding: 4px; /* Adjust if icon looks too small/large */
+    background-color: #444;
+}
+
+.profile-username {
+    margin-right: 5px;
+}
+
+.dropdown-arrow.open {
+    transform: rotate(180deg);
+}
+
+.profile-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #2d2d2d;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+    min-width: 160px;
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: #e0e0e0;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.dropdown-item:hover {
+    background-color: #3f3f3f;
+}
+
+.dropdown-item.logout svg {
+    margin-right: 8px;
+}
+
+.dashboard-main {
+    flex-grow: 1;
+    padding: 30px;
+    text-align: center;
+    z-index: 1; /* Ensure main content is above background animation */
+}
+
+.dashboard-main h1 {
+    margin-bottom: 30px;
+    font-size: 2rem;
+}
+
+.dashboard-section {
+    background-color: rgba(45, 45, 45, 0.7); /* Semi-transparent sections */
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-section h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+    border-bottom: 1px solid #4a4a4a;
+    padding-bottom: 10px;
+}
+
+.dashboard-section p {
+    margin-bottom: 20px;
+    line-height: 1.6;
+    color: #b0b0b0;
+}
+
+/* Placeholder for manager-specific content styling */
+.manager-actions a { /* Example for links */
+    display: inline-block;
+    margin: 10px;
+    padding: 10px 20px;
+    background-color: #007bff; /* Example button color */
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.manager-actions a:hover {
+    background-color: #0056b3;
+}

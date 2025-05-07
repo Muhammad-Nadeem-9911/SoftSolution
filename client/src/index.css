@@ -1,0 +1,29 @@
+/* Reset and Base Styles */
+html, body, #root {
+  height: 100%; /* Make sure root elements can fill the viewport height */
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box; /* Apply box-sizing globally */
+}
+
+*, *::before, *::after {
+  box-sizing: inherit; /* Ensure all elements inherit box-sizing */
+}body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #1a1a1a; /* Set the main dark background here */
+  color: #e0e0e0; /* Set the base text color */
+  /* Ensure body itself can act as a flex container if needed, though height: 100% is key */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure the root div takes up the full height */
+#root {
+  display: flex;
+  flex-direction: column;
+}

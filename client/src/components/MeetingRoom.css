@@ -1,0 +1,817 @@
+/* Basic styles for MeetingRoom.css - Add or merge with existing styles */
+
+.meeting-room-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #1a1a1a; /* Match dashboard */
+  color: #e0e0e0;
+}
+
+/* App Container */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 15px;
+    box-sizing: border-box; /* Include padding in height/width */
+  }
+  
+  /* Header Styling */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #444; /* Separator line */
+    margin-bottom: 15px;
+    flex-shrink: 0; /* Prevent header from shrinking */
+    gap: 1rem; /* Add space between header items (logo, room info, etc.) */
+  }
+  
+  .header h2 {
+    margin: 0;
+    color: #ffffff;
+  }
+  
+  .header-room-info {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Space between ID/Button and participant count */
+  }
+  
+  .copy-room-id-button {
+    background: none;
+    border: 1px solid #6c757d; /* Match toggle button border */
+    color: #e0e0e0; /* Match text color */
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem; /* Match h2 font size */
+    font-family: inherit; /* Match h2 font family */
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+  
+  .copy-room-id-button:hover {
+    background-color: #4f545c;
+    border-color: #888;
+  }
+  
+  .copy-feedback {
+    margin-left: 10px;
+    font-size: 0.8rem;
+    color: #28a745; /* Green for success */
+    font-weight: bold;
+    animation: fadeOut 1.5s forwards; /* Match timeout in JS */
+  }
+  
+  .leave-button {
+    padding: 8px 15px;
+    background-color: #dc3545; /* Red leave button */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .toggle-view-button { /* Style for the new button */
+    padding: 8px 15px;
+    /* background-color: #6c757d; */ /* Remove solid background */
+    background-color: transparent; /* Make background transparent */
+    border: 1px solid #6c757d; /* Use border like other header buttons */
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin: 0 auto; /* Center horizontally if needed */
+    display: inline-flex; /* Align potential icon and text */
+    align-items: center;
+    gap: 6px;
+  }
+  .toggle-view-button:hover {
+    background-color: #5a6268;
+  }
+  .leave-button:hover {
+    background-color: #c82333;
+  }
+  
+  /* Main Content Area (Video + Sidebar) */
+  .main-content {
+    display: flex;
+    flex-grow: 1; /* Take remaining vertical space */
+    gap: 15px; /* Space between video and sidebar */
+    overflow: hidden; /* Prevent overflow from main content */
+  }
+  
+  /* Video Section (Left Column - 70%) */
+  .video-section {
+    flex-grow: 7; /* Let it grow based on ratio (e.g., 7 parts) */
+    flex-basis: 0; /* Start calculation from 0 */
+    background-color: #2b2b2b; /* Slightly lighter dark shade */
+    padding: 10px;
+    border-radius: 5px;
+    position: relative; /* Make this the positioning context for children */
+    overflow-y: auto; /* Allow scrolling if videos overflow */
+  }
+  
+  .video-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  /* Base styles for ALL video elements */
+  .video-element {
+    /* REMOVE width properties from here */
+    height: auto; /* Let aspect-ratio control height */
+    border: 1px solid #444;
+    background-color: #000; /* Black background for video elements */
+    border-radius: 4px;
+    aspect-ratio: 16 / 9; /* Maintain aspect ratio */
+    object-fit: cover; /* Cover the area, might crop */
+    flex-shrink: 0; /* Prevent the element from shrinking */
+    max-width: 100%; /* Ensure it doesn't overflow grid cell */
+  }
+  
+  /* Sidebar Section (Right Column - 30%) */
+  .sidebar-section {
+    flex-grow: 3; /* Let it grow based on ratio (e.g., 3 parts) */
+    flex-basis: 0; /* Start calculation from 0 */
+    display: flex;
+    flex-direction: column;
+    /* gap: 15px; Remove gap as chat is the only child now */
+    overflow: hidden; /* Prevent overflow from sidebar */
+  }
+  
+  /* Whiteboard Container (Now only used when shown in main area) */
+  .whiteboard-container {
+    /* flex: 1 1 50%; Remove flex sizing from here */
+    /* background-color: #2b2b2b; Let parent handle background */
+    padding: 10px;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent content overflow */
+  }
+  
+  /* Specific styles for whiteboard when in the main video section */
+  .video-section > .whiteboard-container {
+    flex-basis: 100%; /* Ensure it takes full height of video section */
+    height: 100%; /* Explicit height */
+    box-sizing: border-box; /* Include padding in height */
+  }
+  
+  .whiteboard-container h3 {
+  
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0; /* Prevent header shrinking */
+  }
+  
+  /* Ensure canvas fits container and has white background */
+  .whiteboard-container canvas,
+  .video-section > div > canvas { /* Target canvas when Whiteboard component is direct child of video-section's div */
+    /* Target canvas directly when whiteboard is in main view */
+    max-width: 100%;
+    /* max-height: calc(100% - 50px); Let flexbox handle height or adjust if needed */
+    border: 1px solid #555 !important; /* Override inline style if needed */
+    background-color: #ffffff; /* White background for drawing */
+    box-sizing: border-box;
+    height: 100%;
+    width: 100%;
+  }
+  
+  /* Whiteboard controls styling */
+  .whiteboard-container > div:first-of-type {
+    margin-bottom: 10px !important; /* Ensure space below controls */
+    flex-shrink: 0;
+  }
+  
+  /* Chat Container (Bottom 50% of Sidebar) */
+  .chat-container {
+    flex-grow: 1; /* Let chat fill the sidebar height */
+    background-color: #2b2b2b;
+    padding: 10px;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent content overflow */
+  }
+  
+  .chat-container h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+  }
+  
+  .messages-display {
+    flex-grow: 1; /* Take available space */
+    overflow-y: auto; /* Enable vertical scrolling when content overflows */
+    border: 1px solid #444;
+    padding: 8px;
+    margin-bottom: 10px;
+    background-color: #333; /* Darker background for messages */
+    border-radius: 4px;
+    display: flex; /* Enable flexbox for aligning self messages */
+    flex-direction: column; /* Stack messages vertically */
+  }
+
+  .messages-display .message { /* Increased specificity */
+    padding: 8px 12px;
+    margin-bottom: 8px; /* Increased margin for better separation */
+    border-radius: 18px; /* More rounded for a chat bubble feel */
+    line-height: 1.4;
+    font-size: 0.9em;
+    word-wrap: break-word;
+    text-align: left; /* Explicitly ensure messages are left-aligned */
+    max-width: 75%; /* Prevent messages from taking full width, adjust as needed */
+    background-color: #3f3f3f; /* A slightly lighter dark shade for the bubble */
+    color: #ffffff; /* White text color for messages */
+    align-self: flex-start; /* Default to left alignment within the flex container */
+  }
+
+  /* Style for the username part of the message */
+  .messages-display .message strong { /* Increased specificity */
+    /* The dynamic color is applied inline via the style prop in MeetingRoom.js for the username */
+    /* No color property here, as it's handled by inline style */
+    margin-right: 6px; /* Space between username and the message text */
+    font-weight: 600; /* Make username a bit bolder */
+  }
+
+  /* Style for the actual message text (inside the span) */
+  .messages-display .message span { /* Increased specificity */
+    /* Ensure the message text itself is white, overriding other .message color rules */
+    color: #ffffff; /* White text for the message content */
+  }
+
+  /* Style for messages sent by the current user */
+  .messages-display .message.self { /* Increased specificity */
+    background-color: #007bff; /* Example: A distinct blue for self messages */
+    /* You could also use a theme-specific color, e.g., a shade from your #20bf55, #01baef gradient */
+    /* background-image: linear-gradient(135deg, #1a8d4a, #018abd); */
+    /* The overall color of .message.self is white, but the span inside will also be white due to its own rule */
+    color: #ffffff; /* Ensure this applies if not for the span */
+    align-self: flex-end; /* Align self messages to the right */
+  }
+  
+  .message-input-area {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0; /* Prevent input area shrinking */
+    align-items: center; /* Align input and button vertically */
+  
+  }
+  
+  .message-input-area input {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #555;
+    background-color: #3c3c3c;
+    color: #e0e0e0;
+    border-radius: 4px;
+  }
+  
+  .message-input-area button {
+    /* Apply gradient here */
+    padding: 8px 15px; /* Keep padding */
+    /* background-color: #007bff; Remove old background */
+    background-image: linear-gradient(135deg, #20bf55, #01baef); /* Sea green gradient */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.2s ease; /* Change transition to opacity */
+  }
+  
+  .message-input-area button:hover {
+    /* background-color: #0056b3; Remove old hover */
+    opacity: 0.9; /* Slightly fade on hover */
+  }
+  
+  /* Initial state styling for join/create room */
+  .join-create-container { /* Add this class to the div in the !roomId block */
+    padding: 40px;
+    max-width: 400px;
+    margin: 50px auto;
+    background-color: #2b2b2b;
+    border-radius: 8px;
+    text-align: center;
+  }
+  
+  .join-create-container h2 {
+    color: #ffffff;
+    margin-bottom: 20px;
+  }
+  
+  .join-create-container input {
+    padding: 10px;
+    margin: 10px 0;
+    width: calc(100% - 22px); /* Account for padding/border */
+    border: 1px solid #555;
+    background-color: #3c3c3c;
+    color: #e0e0e0;
+    border-radius: 4px;
+  }
+  
+  .join-create-container button {
+    padding: 10px 20px;
+    background-color: #28a745; /* Green create button */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-top: 10px;
+  }
+  
+  .join-create-container button:hover {
+    background-color: #218838;
+  }
+  
+  /* === Video Grid Layout Rules === */
+  /* Layout specific overrides */
+  .video-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start; /* Default alignment */
+    align-items: flex-start;   /* Default alignment */
+    width: 100%; /* Ensure grid takes full width of section */
+    gap: 10px;
+  }
+  
+  .video-grid.layout-1 .video-element {
+      width: auto; /* Let aspect ratio and height control width */
+      height: 100%; /* Try to fill height */
+      max-width: 100%; /* Don't exceed container */
+      max-height: calc(100% - 40px); /* Account for padding */
+  }
+  .video-grid.layout-1 { /* Target the grid itself for centering */
+      height: 100%;
+      justify-content: center; /* Center horizontally */
+      align-items: center; /* Center vertically */
+      width: 100%;
+      padding: 20px; /* Add some padding around the single video */
+  }
+  .video-grid.layout-2 {
+    display: flex;
+    flex-wrap: nowrap;      /* Keep items on one row */
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: stretch;   /* Stretch to full height */
+    height: 100%;           /* Ensure full height if parent allows */
+  }
+  
+  .video-grid.layout-2 .video-element {
+    width: calc(50% - 5px); /* Slightly larger, accounts for 10px gap */
+    height: 100%;           /* Full height inside the grid */
+    aspect-ratio: auto;     /* Let height handle it */
+    object-fit: cover;
+    margin: 0;              /* Remove auto margins */;
+  }
+  
+  
+  .video-grid.layout-4 .video-element { /* Keep layout-4 as 2x2 */
+    width: calc(50% - 5px); /* 2 videos per row (adjust gap calc based on .video-grid gap: 10px) */
+  }
+  
+  .video-grid.layout-6 .video-element,
+  .video-grid.layout-9 .video-element {
+    width: calc(33.33% - 7px); /* 3 videos per row (keeping this, seems reasonable) */
+  }
+  
+  .video-grid.layout-many .video-element {
+    width: calc(25% - 8px); /* 4 videos per row (keeping this, seems reasonable) */
+  }
+  
+  .video-grid .self-video {
+    /* Optional: slightly different border for self view */
+    border: 2px solid #007bff;
+  }
+  
+  
+  /* Scrollbar styling (optional, Webkit browsers) */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #2b2b2b;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #777;
+  }
+  
+  /* === Media Controls === */
+  .media-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid #444;
+    gap: 15px; /* Space between buttons */
+    /* Positioning to float inside video-section */
+    position: absolute;
+    bottom: 10px; /* Distance from bottom of video-section */
+    left: 50%; /* Start from the middle */
+    transform: translateX(-50%); /* Shift left by half its width to center */
+  
+    /* box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2); */ /* Remove shadow */
+    z-index: 10; /* Ensure it's above video grid */
+  }
+  
+  .control-button {
+    display: flex;
+    flex-direction: column; /* Icon on top, text below */
+    align-items: center;
+    justify-content: center;
+    background-color: #4f545c; /* Neutral dark grey */
+    color: #e0e0e0;
+    border: none;
+    border-radius: 8px;
+    border-radius: 50%; /* Make it round */
+    width: 50px; /* Set fixed width */
+    height: 50px; /* Set fixed height (equal to width) */
+    padding: 0; /* Remove padding, rely on flex centering */
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-size: 0.8rem;
+  }
+  
+  .control-button:hover {
+    background-color: #5a6268;
+  }
+  
+  .control-button.disabled {
+    background-color: #dc3545; /* Red when disabled (mic muted, video off) */
+  }
+  
+  .control-button.disabled:hover {
+    background-color: #c82333;
+  }
+  
+  .control-button span {
+    /* margin-top: 4px; */ /* Space between icon and text */
+    display: none; /* Hide text for cleaner round buttons */
+  }
+  
+  /* === Whiteboard Controls === */
+  .whiteboard-controls {
+    display: flex;
+    align-items: center; /* Vertically align items */
+    gap: 20px; /* Space between control groups */
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    background-color: #333; /* Dark background for controls */
+    border-radius: 5px;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens if needed */
+  }
+  
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Space within a group (label, input) */
+  }
+  
+  .whiteboard-controls label {
+    font-size: 0.9rem;
+    color: #b0b0b0;
+  }
+  
+  .whiteboard-controls input[type="color"] {
+    width: 30px; /* Smaller color picker */
+    height: 30px;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  
+  .whiteboard-controls input[type="range"] {
+    cursor: pointer;
+    vertical-align: middle; /* Align slider nicely */
+  }
+  
+  .width-display {
+    min-width: 20px; /* Ensure space for number */
+    text-align: right;
+    font-weight: bold;
+  }
+  
+  .clear-button {
+    /* Use styles similar to dashboard buttons */
+    padding: 6px 12px;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-size: 0.9rem;
+    margin-left: auto; /* Push clear button to the right */
+  }
+  
+  .clear-button:hover {
+    background-color: #5a6268;
+  }
+  
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  
+  /* ... other styles ... */
+  
+  .participant-count-display {  display: inline-flex; /* Align potential icon and text */
+    align-items: center;
+    gap: 6px; /* Match toggle button gap */
+    padding: 8px 15px; /* Match toggle button padding */
+    background-color: transparent; /* Match toggle button background */
+    border: 1px solid #6c757d; /* Match toggle button border */
+    color: white; /* Match toggle button color */
+    border-radius: 4px; /* Match toggle button radius */
+    cursor: pointer; /* Keep cursor */
+    transition: background-color 0.2s ease; /* Match toggle button transition */
+    font-size: 0.9rem; /* Keep font size */
+  }
+  
+  .participant-count-display svg { /* Style the icon slightly */
+    vertical-align: middle; /* Align icon better */
+  }
+  
+  .participant-count-display:hover {
+    background-color: #5a6268; /* Match toggle button hover */
+  }
+  
+  .active-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #28a745; /* Green color */
+    border-radius: 50%; /* Make it a circle */
+  }
+  
+  
+  
+  /* Participant Sidebar Styles */
+  .participants-sidebar {
+    position: fixed; /* Or absolute depending on layout */
+    top: 0;
+    right: 0;
+    width: 250px; /* Adjust width as needed */
+    height: 100%;
+    background-color: #252525;
+    border-left: 1px solid #444;
+    padding: 15px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    z-index: 100; /* Ensure it's above other content */
+  }
+  
+  .participants-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 10px;
+  }
+  
+  .participants-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+  
+  .close-participants-btn {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+  
+  /* Participant Dropdown Styles */
+.participant-area {
+  position: relative; /* Needed for absolute positioning of dropdown */
+}
+
+.participant-dropdown {
+  position: absolute;
+  top: 100%; /* Position below the count display */
+  right: 0; /* Align to the right edge */
+  background-color: #3a3a3a; /* Slightly darker than header */
+  border: 1px solid #555;
+  border-radius: 4px;
+  margin-top: 5px; /* Small gap */
+  padding: 5px 0; /* Padding top/bottom */
+  min-width: 200px; /* Minimum width */
+  /* Calculate max-height for ~6 items. Adjust based on actual item height */
+  /* Example: (padding-top + padding-bottom + line-height) * 6 */
+  /* Assuming padding 8px*2 and line-height ~1.2rem (~19px) => (16 + 19) * 6 = 210px */
+  max-height: 210px;
+  overflow-y: auto; /* Enable scroll after max-height */
+  z-index: 20; /* Ensure it's above other elements */
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+  .participants-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    /* Removed flex-grow and overflow from here, handled by dropdown */
+}
+
+.participant-dropdown .participants-list { /* Target list specifically inside dropdown */
+    flex-grow: 1;
+    overflow-y: auto; /* Enable vertical scroll */
+    /* Optional: Limit height to roughly 6 items before scrolling */
+    /* Adjust this value based on your item height */
+    /* max-height: calc((8px * 2 + 1rem * 1.2) * 6); Example calculation */  
+  }
+
+/* Styles for participant items, admin icon, and control buttons */
+.participant-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;    padding: 8px 15px; /* Add horizontal padding */
+    border-bottom: 1px solid #444; /* Keep bottom border */
+    cursor: default; /* Default cursor for non-clickable items */
+    transition: background-color 0.2s ease; /* Add transition for hover */
+}
+
+/* Style for self in the list */
+.participant-item.self {
+  font-weight: bold; /* Example: make self bold */
+
+}
+
+.participant-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Hover effect for list items */
+.participant-item:hover {
+  background-color: #4f545c; /* Same hover as dropdown items */
+}
+
+.admin-icon {
+    color: #ffd700; /* Gold color for crown */
+    font-size: 0.8em;
+}
+
+/* Renamed to avoid conflict with media controls */
+.permission-control-button {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+        /* Ensure this doesn't conflict with media controls .control-button */
+
+}
+.permission-control-button.grant { background-color: #28a745; color: white; }
+.permission-control-button.revoke { background-color: #dc3545; color: white; }
+.permission-control-button:hover { opacity: 0.8; }
+
+/* Styles for main-content, video-section, etc. should already be defined above this point */
+/* If they are missing, they need to be added back correctly */
+
+/* --- Responsive Adjustments --- */
+
+/* Medium screens (Tablets, smaller laptops) */
+@media (max-width: 992px) {
+  .main-content {
+    flex-direction: column; /* Stack video and sidebar */
+    overflow: hidden; /* Prevent scrolling on main content */
+  }
+
+  .video-section {
+    flex-grow: 1; /* Let video section take available space */
+    height: 65vh; /* Example height, adjust as needed */
+    overflow-y: auto; /* Allow scrolling within video section */
+  }
+
+  .sidebar-section {
+    flex-grow: 0; /* Don't let sidebar grow */
+    flex-basis: auto; /* Reset basis */
+    height: 35vh; /* Example height, adjust as needed */
+    width: 100%; /* Full width */
+    border-left: none; /* Remove side border */
+    border-top: 1px solid #444; /* Add top border */
+  }
+
+  .chat-container {
+    height: 100%; /* Ensure chat fills the sidebar height */
+  }
+
+  /* Adjust video grid for fewer columns */
+  .video-grid.layout-many .video-element {
+    width: calc(33.33% - 7px); /* 3 columns */
+  }
+  .video-grid.layout-6 .video-element,
+  .video-grid.layout-9 .video-element {
+    width: calc(50% - 5px); /* 2 columns */
+  }
+}
+
+/* Small screens (Phones) */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 10px; /* Reduce overall padding */
+  }
+
+  .header {
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap; /* Allow header items to wrap */
+    gap: 0.5rem;
+    justify-content: center; /* Center logo container when it wraps */
+  }
+
+  /* Hide logo on mobile */
+  .header .header-logo {
+    display: none;
+  }
+
+  .header-room-info {
+    /* Optionally hide room ID text on small screens */
+    /* font-size: 0.9rem; */
+    gap: 10px;
+  }
+
+  .header-controls { /* Style the controls container for mobile */
+    order: 1; /* Ensure controls come after logo if wrapped */
+    width: 100%; /* Take full width when wrapped */
+    flex-wrap: wrap; /* Allow controls themselves to wrap if needed */
+    gap: 10px; /* Space between control items */
+    margin-top: 10px; /* Add space below logo */
+  }
+  /* Center all controls for both roles on mobile */
+  .admin-header .header-controls,
+  .user-header .header-controls {
+    justify-content: center; }
+  .copy-room-id-button {
+    padding: 4px 8px;
+    font-size: 0.9rem;
+  }
+
+  .participant-count-display,
+  .toggle-view-button {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+
+  .video-section {
+    height: 60vh; /* Adjust height split */
+    padding: 5px;
+  }
+
+  .sidebar-section {
+    height: 40vh; /* Adjust height split */
+  }
+
+  .video-grid {
+    gap: 5px;
+  }
+
+  /* Force 1 or 2 columns max */
+  .video-grid.layout-1 .video-element,
+  .video-grid.layout-2 .video-element,
+  .video-grid.layout-4 .video-element,
+  .video-grid.layout-6 .video-element,
+  .video-grid.layout-9 .video-element,
+  .video-grid.layout-many .video-element {
+    width: calc(50% - 3px); /* Max 2 videos per row */
+    /* Or uncomment below for single column */
+    /* width: 95%; */
+  }
+
+  .media-controls {
+    gap: 10px;
+    bottom: 5px; /* Closer to edge */
+  }
+  .control-button {
+    width: 45px;
+    height: 45px;
+  }
+
+  .whiteboard-controls {
+    gap: 10px; /* Reduce gap */
+    padding: 5px;
+  }
+  .clear-button {
+    margin-left: 0; /* Don't push to right if wrapping */
+  }
+}
