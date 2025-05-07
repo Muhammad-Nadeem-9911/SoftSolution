@@ -68,13 +68,30 @@ function generateColorFromString(str) {
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  // Handle disconnection (browser close, network issue, etc.)
-  socket.on("disconnect", () => {
+    socket.on("disconnect", async (reason) => { // Make async
+
     // Retrieve the roomId and userId stored on the socket
     const { roomId, userId, peerConnectionId, username } = socket; // Get username too
     
-    // Removed activeMeetings cleanup
+    console.log(`User disconnected: Socket ID ${socket.id}, UserID: ${userId}, RoomID: ${roomId}, Reason: ${reason}`);
 
+    // --- NEW: Clear activeMeeting status on disconnect ---
+    if (userId) { // Check if userId was associated with this socket
+      try {
+        const user = await User.findOne({ _id: userId, 'activeMeeting.socketId': socket.id });
+        if (user) {
+          console.log(`Clearing active meeting for user ${userId} (socket ${socket.id}) from meeting ${user.activeMeeting.meetingId} due to disconnect.`);
+          user.activeMeeting.meetingId = null;
+          user.activeMeeting.socketId = null;
+          user.activeMeeting.joinedAt = null;
+          await user.save();
+        }
+      } catch (error) {
+        console.error(`Error clearing active meeting for user ${userId} on disconnect:`, error);
+      }
+    }
+    // --- END NEW ---
+    
     if (roomId && userId && rooms[roomId]) {
       console.log(`User ${username || userId} disconnected from room ${roomId}`); // Use username in log if available
       
@@ -108,6 +125,69 @@ io.on("connection", (socket) => {
     // Log received parameters immediately
     console.log(`[Receive join-room] Room: ${roomId}, UserID: ${userId}, PeerID: ${peerConnectionId}, Username: ${username}`);
 
+    let userToJoin; // Will hold the validated user object
+
+    // --- Step 1: Validate user and check existing meeting status ---
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        console.error(`User ${userId} not found when trying to join room ${roomId}`);
+        socket.emit('join-room-error', { message: 'Authentication error. User not found.' });
+        return;
+      }
+
+      if (user.activeMeeting && user.activeMeeting.meetingId && user.activeMeeting.socketId !== socket.id) {
+        console.log(`User ${userId} attempted to join room ${roomId} but is already in meeting ${user.activeMeeting.meetingId} on socket ${user.activeMeeting.socketId}`);
+        socket.emit('join-room-error', {
+          message: `You are already in meeting ${user.activeMeeting.meetingId}. Please leave it before joining another.`,
+          activeMeetingId: user.activeMeeting.meetingId
+        });
+        return;
+      }
+      userToJoin = user; // User is valid and not in another conflicting meeting
+    } catch (error) {
+      console.error(`Error during pre-join user validation for ${userId}:`, error);
+      socket.emit('join-room-error', { message: 'Server error during user validation.' });
+      return;
+    }
+    // --- END Step 1 ---
+
+    // --- Step 2: Proceed with joining logic if validation passed ---
+    try {
+      // Update activeMeeting status for the validated user
+      userToJoin.activeMeeting.meetingId = roomId;
+      userToJoin.activeMeeting.socketId = socket.id;
+      userToJoin.activeMeeting.joinedAt = new Date();
+      await userToJoin.save();
+      console.log(`User ${userId} activeMeeting status updated for room ${roomId}, socket ${socket.id}`);
+
+      // Get user role from the already fetched user object
+      const userRole = userToJoin.role;
+      console.log(`[Server] Role for ${username}: ${userRole}`);
+
+      const userColor = generateColorFromString(userId); // Generate userColor here
+      // Continue with existing room setup logic
+      await performRoomJoiningTasks(socket, roomId, userId, peerConnectionId, username, userRole, userColor); // Pass it
+
+    } catch (error) {
+      console.error(`Error during main join logic for user ${userId} in room ${roomId}:`, error);
+      // Attempt to roll back activeMeeting status if an error occurred after setting it
+      if (userToJoin && userToJoin.activeMeeting.socketId === socket.id) {
+        try {
+          userToJoin.activeMeeting.meetingId = null;
+          userToJoin.activeMeeting.socketId = null;
+          userToJoin.activeMeeting.joinedAt = null;
+          await userToJoin.save();
+          console.log(`Rolled back activeMeeting status for ${userId} due to error during join.`);
+        } catch (rollbackError) {
+          console.error(`Error rolling back activeMeeting status for ${userId}:`, rollbackError);
+        }
+      }
+      socket.emit('join-room-error', { message: 'Server error while joining room.' });
+    }
+  });
+
+  async function performRoomJoiningTasks(socket, roomId, userId, peerConnectionId, username, userRole, userColor) {
     socket.join(roomId);
     // Store roomId and userId on the socket object for later use (like disconnect)
     socket.roomId = roomId;
@@ -132,23 +212,11 @@ io.on("connection", (socket) => {
       roomChatHistories[roomId] = [];
       console.log(`[Server] Initialized empty chat history for new room ${roomId}.`);
     }
-    // Generate color for the user
-    const userColor = generateColorFromString(userId);
-    // Add user info object to the room
-    // --- Fetch user role from Database ---
-    let userRole = 'user'; // Default role
-    try {
-      const userFromDb = await User.findById(userId).select('role'); // Fetch user by ID
-      if (userFromDb) {
-        userRole = userFromDb.role; // Use the role from the database
-        console.log(`[Server] Fetched role for ${username}: ${userRole}`);
-      } else {
-        console.warn(`[Server] Could not find user ${userId} in DB to determine role.`);
-      }
-    } catch (dbErr) {
-      console.error(`[Server] Error fetching user role from DB for ${userId}:`, dbErr);
-    }
-    const userInfo = { userId, username, peerConnectionId, color: userColor, socketId: socket.id, role: userRole }; // Add socketId and role    rooms[roomId].push(userInfo);
+    // userColor is now passed as an argument, generate it before calling this function if needed.
+    // The fallback below is less critical now since we generate it before calling, but harmless.
+    // if (!userColor) userColor = generateColorFromString(userId);
+
+    const userInfo = { userId, username, peerConnectionId, color: userColor, socketId: socket.id, role: userRole };
     // Try assigning a new array instead of pushing
     rooms[roomId] = [...rooms[roomId], userInfo];
     // Log the state IMMEDIATELY after assigning the new array
@@ -177,12 +245,29 @@ io.on("connection", (socket) => {
     // Send the current chat history to the joining user
     socket.emit('chat-history', roomChatHistories[roomId]);
     console.log(`[Server] Sending chat history to ${userId}. History length: ${roomChatHistories[roomId].length}`);
-
-  });
+  }
 
   // Handle explicit leave-room event from client
-  socket.on("leave-room", (roomId, userId) => { // Assuming client sends roomId and userId
+  socket.on("leave-room", async (roomId, userId) => { // Make async, assuming client sends roomId and userId
     console.log(`[leave-room event] User ${userId} (Socket: ${socket.id}) is attempting to leave room ${roomId}`);
+    
+    // --- NEW: Clear activeMeeting status on explicit leave ---
+    if (userId) {
+      try {
+        const user = await User.findById(userId);
+        // Check if they are leaving the meeting they are marked active in with this specific socket
+        if (user && user.activeMeeting.meetingId === roomId && user.activeMeeting.socketId === socket.id) {
+          user.activeMeeting.meetingId = null;
+          user.activeMeeting.socketId = null;
+          user.activeMeeting.joinedAt = null;
+          await user.save();
+          console.log(`Cleared active meeting for user ${userId} after leaving room ${roomId}.`);
+        }
+      } catch (error) {
+        console.error(`Error clearing active meeting for user ${userId} on leave-room:`, error);
+      }
+    }
+    // --- END NEW ---
     socket.leave(roomId);
     // Removed activeMeetings cleanup. The main "disconnect" event will handle user removal from the room.
   });

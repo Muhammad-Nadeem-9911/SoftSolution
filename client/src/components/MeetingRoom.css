@@ -815,3 +815,95 @@
     margin-left: 0; /* Don't push to right if wrapping */
   }
 }
+
+/* Custom Alert Styles */
+.custom-alert-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(20, 20, 20, 0.8); /* Dark semi-transparent overlay, common in dark themes */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050; /* High z-index to be on top */
+  backdrop-filter: blur(4px); /* Frosted glass effect for modern dashboards */
+  padding: 15px;
+}
+
+.custom-alert-box {
+  background-color: #333; /* Dark background, common for dashboard modals/cards */
+  padding: 25px 30px;
+  border-radius: 8px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5); /* Standard shadow for depth */
+  text-align: center;
+  width: 90%;
+  max-width: 420px;
+  color: #f0f0f0; /* Light text color for readability on dark background */
+  border-top: 4px solid #555; /* Default top border, overridden by type */
+  animation: fadeInAlert 0.3s ease-out;
+}
+
+@keyframes fadeInAlert {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.custom-alert-box h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.5em;
+  font-weight: 600;
+  color: #ffffff; /* Default title color, overridden by type */
+}
+
+.custom-alert-box p {
+  margin-bottom: 25px;
+  font-size: 1em;
+  line-height: 1.6;
+}
+
+.custom-alert-button {
+  /* background-color: #007bff; Old solid blue */
+  background-image: linear-gradient(135deg, #20bf55, #01baef); /* Matching AdminDashboard/Profile primary buttons */
+  color: white;
+  border: none;
+  padding: 12px 30px; /* Generous padding for a primary button */
+  border-radius: 4px; /* Match dashboard button radius */
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: bold; /* Match dashboard button font-weight */
+  transition: opacity 0.2s ease, transform 0.1s ease; /* Match dashboard button transition */
+}
+
+.custom-alert-button:hover {
+  /* background-color: #0056b3; Old solid blue hover */
+  background-image: linear-gradient(135deg, #1aa34a, #01a8d4); /* Darker gradient on hover */
+  opacity: 0.9; /* Match dashboard button hover opacity */
+}
+.custom-alert-button:active {
+  transform: scale(0.98); /* Slight press effect */
+}
+
+/* Type-specific styling for alert accents */
+.custom-alert-box.custom-alert-error {
+  border-top-color: #e74c3c; /* Standard error red */
+}
+.custom-alert-box.custom-alert-error h4 {
+  color: #e74c3c;
+}
+
+.custom-alert-box.custom-alert-success {
+  border-top-color: #2ecc71; /* Standard success green */
+}
+.custom-alert-box.custom-alert-success h4 {
+  color: #2ecc71;
+}
+
+.custom-alert-box.custom-alert-info {
+  border-top-color: #01baef; /* Use the blue from the gradient for info accent */
+}
+.custom-alert-box.custom-alert-info h4 {
+  color: #01baef; /* Use the blue from the gradient for info title */
+}

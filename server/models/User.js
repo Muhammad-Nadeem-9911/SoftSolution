@@ -32,6 +32,11 @@ const UserSchema = new mongoose.Schema({
       type: Date,
       default: Date.now,
     },
+    activeMeeting: {
+      meetingId: { type: String, default: null }, // ID of the meeting they are in
+      socketId: { type: String, default: null },  // WebSocket ID for this specific meeting session
+      joinedAt: { type: Date, default: null }     // Timestamp when they joined
+    },
   });
   
   const User = mongoose.model('User', UserSchema);

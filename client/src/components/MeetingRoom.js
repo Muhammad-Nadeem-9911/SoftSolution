@@ -110,12 +110,33 @@ const MeetingRoom = () => {
   const [localHasWhiteboardControl, setLocalHasWhiteboardControl] = useState(false);
   const [initialDrawingHistory, setInitialDrawingHistory] = useState([]);
 
+  // State for custom alert
+  const [customAlert, setCustomAlert] = useState({
+    show: false,
+    message: '',
+    type: 'info', // 'info', 'error', 'success'
+    onClose: null, // Optional callback for when the alert is closed
+  });
   const isAdmin = user?.role === 'admin'; // Check if user is admin
 
   useEffect(() => {
     // Admin always starts with control
     setLocalHasWhiteboardControl(isAdmin);
   }, [isAdmin]);
+
+  // Ensure these helper functions for the custom alert are defined within the component scope,
+  // before they are used in useEffect or the return JSX.
+  const showCustomAlert = (message, type = 'info', onCloseCallback = null) => {
+    setCustomAlert({ show: true, message, type, onClose: onCloseCallback });
+  };
+
+  const hideCustomAlertAndCallback = () => {
+    const callback = customAlert.onClose;
+    setCustomAlert({ show: false, message: '', type: 'info', onClose: null });
+    if (callback) {
+      callback();
+    }
+  };
 
   // 1. Socket Connection
   useEffect(() => {
@@ -303,6 +324,15 @@ const MeetingRoom = () => {
       setHasJoinedRoom(true);
     };
 
+    const handleJoinRoomError = (data) => {
+      console.error(`[Socket] 'join-room-error' received:`, data.message);
+      showCustomAlert(
+        `Could not join room: ${data.message}`,
+        'error',
+        () => leaveMeeting(true) // Pass leaveMeeting as the onClose callback
+      );
+    };
+
     const handleUserDisconnected = (disconnectedUserId, disconnectedPeerId) => {
       console.log(`[Socket] 'user-disconnected': UserID: ${disconnectedUserId}, PeerID: ${disconnectedPeerId}`);
       setPeers(prevPeers => {
@@ -358,6 +388,7 @@ const MeetingRoom = () => {
     };
 
     currentSocket.on('room-joined', handleRoomJoined);
+    currentSocket.on('join-room-error', handleJoinRoomError); // Add new listener
     currentSocket.on('user-connected', handleUserConnected);
     currentSocket.on('user-disconnected', handleUserDisconnected);
     currentSocket.on('createMessage', handleCreateMessage);
@@ -372,6 +403,7 @@ const MeetingRoom = () => {
     return () => {
       console.log('[Socket] Cleaning up event listeners.');
       currentSocket.off('room-joined', handleRoomJoined);
+      currentSocket.off('join-room-error', handleJoinRoomError);
       currentSocket.off('user-connected', handleUserConnected);
       currentSocket.off('user-disconnected', handleUserDisconnected);
       currentSocket.off('createMessage', handleCreateMessage);
@@ -428,10 +460,10 @@ const MeetingRoom = () => {
     }
   };
 
-  const leaveMeeting = () => {
-    if (!user) return; // Should not happen if user is in meeting
-    const userId = user._id;
-    console.log("Leaving meeting...");
+  const leaveMeeting = (isErrorLeave = false) => { // Add optional parameter
+    if (!user && !isErrorLeave) return; // Allow leave even if user context is briefly lost during an error
+    const userId = user?._id; // Use optional chaining if user might be null during error leave
+    console.log(`Leaving meeting... UserID: ${userId}, IsErrorLeave: ${isErrorLeave}`);
     if (socketRef.current && hasJoinedRoom) {
       socketRef.current.emit('leave-room', roomId, userId);
     }
@@ -451,13 +483,15 @@ const MeetingRoom = () => {
     }
     peerInstanceRef.current = null;
 
-    // Navigate back to the appropriate dashboard
-    if (user.role === 'admin') {
-        navigate('/admin/dashboard');
-    } else if (user.role === 'manager') {
-        navigate('/manager/dashboard');
-    } else {
-        navigate('/user/dashboard');
+    // Navigate back to the appropriate dashboard, ensure user object exists for role check
+    if (user?.role) {
+        if (user.role === 'admin') {
+            navigate('/admin/dashboard', { replace: true });
+        } else if (user.role === 'manager') {
+            navigate('/manager/dashboard', { replace: true });
+        } else {
+            navigate('/user/dashboard', { replace: true });
+        }
     }
   };
 
@@ -622,6 +656,19 @@ const MeetingRoom = () => {
       </div> {/* End of header */}
 
       <div className="main-content"> {/* Start of main content area */}
+        {/* Custom Alert Modal */}
+        {customAlert.show && (
+          <div className="custom-alert-overlay">
+            <div className={`custom-alert-box custom-alert-${customAlert.type}`}>
+              <h4>{customAlert.type.charAt(0).toUpperCase() + customAlert.type.slice(1)}</h4>
+              <p>{customAlert.message}</p>
+              <button onClick={hideCustomAlertAndCallback} className="custom-alert-button">
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Video/Whiteboard Section */}
         <div className="video-section">
           {/* Video Grid Area */}
