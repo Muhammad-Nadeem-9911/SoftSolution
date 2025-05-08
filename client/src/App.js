@@ -13,6 +13,7 @@ import MeetingRoom from './components/MeetingRoom'; // Import MeetingRoom
 import ProfileSettings from './components/ProfileSettings'; // Import ProfileSettings
 import ForgotPassword from './components/Auth/ForgotPassword';
 import ResetPassword from './components/Auth/ResetPassword';
+import VerifyEmailPage from './components/Auth/VerifyEmailPage'; // Import VerifyEmailPage
 import ManagerDashboard from './components/ManagerDashboard';
 import ManageUsers from './components/ManageUsers';
 // import MeetingRoom from './components/MeetingRoom';
@@ -80,6 +81,7 @@ const App = () => {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/verify-email/:token" element={<VerifyEmailPage />} /> {/* Add verification route */}
         {/* Protected Routes */}
         {/* Admin Route */}
         <Route element={<ProtectedRoute requiredRole="admin" />}>

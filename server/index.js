@@ -5,12 +5,13 @@ const cors = require("cors");
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User'); // Import the User model (keep this)
+const rateLimit = require('express-rate-limit'); // Import express-rate-limit
 const managerRoutes = require('./routes/managerRoutes'); // Import manager routes
 
 const app = express();
 require('./config/cloudinary'); // <<< Add this line to run the Cloudinary config
 require('dotenv').config();
-const clientURL = process.env.CLIENT_URL || "http://localhost:3000"; // Define client URL from env FIRST
+const clientURL = process.env.FRONTEND_URL || "http://localhost:3000"; // Define client URL from env FIRST
 app.use(express.json());
 app.use(cors({ origin: clientURL, credentials: true })); // Now clientURL is defined
 
@@ -25,8 +26,31 @@ const io = new Server(server, {
   }
 });
 
+// Rate Limiting Setup
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Limit each IP to 20 requests per windowMs for most auth actions
+  message: { msg: 'Too many requests from this IP, please try again after 15 minutes' },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+const signupLimiter = rateLimit({ // Stricter for signup
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 500, // TEMPORARILY INCREASED FOR DEVELOPMENT: Limit each IP to 500 signup attempts per hour
+    message: { msg: 'Too many accounts created from this IP (dev limit), please try again after an hour' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 // In d:\Zoom-Clone-Mern\server\index.js
-app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth/signup', signupLimiter); // Apply stricter limiter to signup
+app.use('/api/auth/login', generalLimiter);
+app.use('/api/auth/forgot-password', generalLimiter);
+app.use('/api/auth/reset-password/:token', generalLimiter); // Note: token in URL, IP still primary factor
+app.use('/api/auth/verify-email/:token', generalLimiter); // Note: token in URL
+app.use('/api/auth/resend-verification', generalLimiter);
+app.use('/api/auth', require('./routes/auth')); // Mount the auth routes AFTER specific limiters
 app.use('/api/users', require('./routes/users')); // Use relative path './'
 app.use('/api/manager', managerRoutes); // Mount manager-specific routes
 

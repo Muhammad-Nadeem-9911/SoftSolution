@@ -1,4 +1,6 @@
 const mongoose=require('mongoose');
+const crypto = require('crypto'); // Import crypto
+const bcrypt = require('bcryptjs'); // For password hashing
 
 const UserSchema = new mongoose.Schema({
     username: {
@@ -37,7 +39,36 @@ const UserSchema = new mongoose.Schema({
       socketId: { type: String, default: null },  // WebSocket ID for this specific meeting session
       joinedAt: { type: Date, default: null }     // Timestamp when they joined
     },
+    // Fields for email verification
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationToken: {
+      type: String,
+    },
+    verificationTokenExpires: {
+      type: Date,
+    },
+  }, { timestamps: true }); // Added timestamps for createdAt and updatedAt by Mongoose
+
+  // Hash password before saving if it's modified
+  UserSchema.pre('save', async function(next) {
+    if (!this.isModified('password')) {
+      return next();
+    }
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
   });
+
+  // Method to generate email verification token
+  UserSchema.methods.createEmailVerificationToken = function() {
+    const verificationTokenPlain = crypto.randomBytes(32).toString('hex');
+    this.verificationToken = crypto.createHash('sha256').update(verificationTokenPlain).digest('hex');
+    this.verificationTokenExpires = Date.now() + 10 * 60 * 1000; // Token expires in 10 minutes
+    return verificationTokenPlain; // Return the unhashed token to send via email
+  };
   
   const User = mongoose.model('User', UserSchema);
   module.exports = User;

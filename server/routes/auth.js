@@ -25,7 +25,7 @@ router.post(
     // Optional: Add role validation if you allow specifying role during signup (usually not recommended)
     // check('role', 'Invalid role specified').optional().isIn(['admin', 'user'])
   ],
-  async (req, res) => {
+  async (req, res) => { // Corrected arrow function syntax
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -49,36 +49,62 @@ router.post(
         role: role || 'user', // Default to 'user' if not provided or restrict role setting
       });
 
-      // Hash password
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
+      // Password will be hashed by the pre-save hook in User.js
 
-      // Save user to database
-      await user.save();
+      // Generate email verification token (method is on the user instance)
+      const verificationTokenPlain = user.createEmailVerificationToken();
+      // isVerified defaults to false. verificationToken (hashed) and verificationTokenExpires are set by the method.
 
-      // Create JWT payload
-      const payload = {
-        user: {
-          id: user.id,
-          role: user.role,
-          // You might want to include username and email here if needed by the frontend immediately after signup
-          // username: user.username,
-          // email: user.email,
-        },
-      };
+      await user.save({ validateBeforeSave: false }); // Save user with verification token
 
-      // Sign the token
-      jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN }, (err, token) => {
-        if (err) {
-          // If jwt.sign fails, send a JSON error response from within the callback
-          console.error('JWT Sign Error:', err.message);
-          return res.status(500).json({ msg: 'Error signing token' });
+      // Send verification email
+      const verifyURL = `${process.env.FRONTEND_URL}/verify-email/${verificationTokenPlain}`;
+      const emailHtml = `
+        <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td style="padding: 20px 0 30px 0;" align="center">
+              <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; border: 1px solid #cccccc; background-color: #ffffff;">
+                <tr>
+                  <td align="center" bgcolor="#007bff" style="padding: 40px 0 30px 0; color: #ffffff; font-size: 28px; font-weight: bold;">
+                    Welcome to MeetSphere!
+                  </td>
+                </tr>
+                <tr>
+                  <td bgcolor="#ffffff" style="padding: 40px 30px 40px 30px;">
+                    <h1 style="font-size: 24px; margin: 0 0 20px 0;">Hi ${user.username},</h1>
+                    <p style="margin: 0 0 12px 0; font-size: 16px; line-height: 24px;">Thank you for registering. Please verify your email address to complete your signup by clicking the button below:</p>
+                    <p style="text-align: center; margin: 20px 0;"><a href="${verifyURL}" target="_blank" style="background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">Verify Your Email</a></p>
+                    <p style="margin: 0 0 12px 0; font-size: 16px; line-height: 24px;">This verification link will expire in 10 minutes.</p>
+                    <p style="margin: 0; font-size: 16px; line-height: 24px;">If you did not create an account, please ignore this email.</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td bgcolor="#eeeeee" style="padding: 30px 30px; text-align: center; font-size: 14px; color: #555555;">
+                    &copy; ${new Date().getFullYear()} MeetSphere. All rights reserved.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      `;
+
+      try {
+        await sendEmail({
+          email: user.email,
+          subject: 'MeetSphere - Email Verification Required',
+          html: emailHtml,
+        });
+        res.status(201).json({ msg: 'Registration successful! Please check your email to verify your account.' });
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError);
+        // Decide if you want to delete the user or let them try to resend verification later
+        // For now, we'll still send a success response for registration, but log the email error.
+        return res.status(500).json({ msg: 'User registered, but failed to send verification email. Please contact support.' });
         }
-        // On success, send back the token AND the user object
-        // The frontend AuthPage.js expects data.user for redirection
-        const userResponse = { id: user.id, username: user.username, email: user.email, role: user.role };
-        res.json({ token, user: userResponse });
-      });
+
     } catch (err) {
       console.error('Signup Error:', err.message);
       res.status(500).json({ msg: 'Server error during signup' }); // Send JSON response
@@ -95,7 +121,7 @@ router.post(
     check('email', 'Please include a valid email').isEmail(),
     check('password', 'Password is required').exists(),
   ],
-  async (req, res) => {
+  async (req, res) => { // Corrected arrow function syntax
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -109,15 +135,20 @@ router.post(
       // Check for user by email
       let user = await User.findOne({ email });
       if (!user) {
-        return res.status(400).json({ msg: 'Invalid Credentials' });
         console.log('[Login Route] User not found:', req.body.email); // Add log
+        return res.status(400).json({ msg: 'Invalid Credentials' });
       }
 
       // Compare submitted password with hashed password in DB
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        return res.status(400).json({ msg: 'Invalid Credentials' });
         console.log('[Login Route] Invalid password for:', req.body.email); // Add log
+        return res.status(400).json({ msg: 'Invalid Credentials' });
+      }
+
+      // Check if user is verified
+      if (!user.isVerified) {
+        return res.status(401).json({ msg: 'Please verify your email address to log in. Check your inbox for a verification link.' });
       }
 
       // Create JWT payload
@@ -151,7 +182,7 @@ router.post(
 // @route   GET api/auth/me
 // @desc    Get logged in user's data (protected)
 // @access  Private
-router.get('/me', authMiddleware, async (req, res) => {
+router.get('/me', authMiddleware, async (req, res) => { // Corrected arrow function syntax
   try {
     // req.user is attached by the authMiddleware
     // Find user by ID from token payload, exclude password
@@ -169,7 +200,7 @@ router.get('/me', authMiddleware, async (req, res) => {
 // @route   POST api/auth/forgot-password
 // @desc    Request password reset link
 // @access  Public
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', async (req, res) => { // Corrected arrow function syntax
   const { email } = req.body;
 
   if (!email) {
@@ -235,7 +266,7 @@ router.post('/forgot-password', async (req, res) => {
 // @route   POST api/auth/reset-password/:token
 // @desc    Reset password using token
 // @access  Public
-router.post('/reset-password/:token', async (req, res) => {
+router.post('/reset-password/:token', async (req, res) => { // Corrected arrow function syntax
   const { password } = req.body;
 
   if (!password || password.length < 6) {
@@ -273,6 +304,120 @@ router.post('/reset-password/:token', async (req, res) => {
   } catch (err) {
       console.error('[Reset Password] Server error:', err);
       res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// @route   GET api/auth/verify-email/:token
+// @desc    Verify user's email address
+// @access  Public
+router.get('/verify-email/:token', async (req, res) => {
+  try {
+    const verificationTokenPlain = req.params.token;
+
+    // Hash the token from the URL to match the one stored in the DB
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(verificationTokenPlain)
+      .digest('hex');
+
+    const user = await User.findOne({
+      verificationToken: hashedToken,
+      verificationTokenExpires: { $gt: Date.now() }, // Check if token is not expired
+    });
+
+    if (!user) {
+      return res.status(400).json({ msg: 'Verification token is invalid or has expired. Please try registering again or request a new verification email.' });
+    }
+
+    user.isVerified = true;
+    user.verificationToken = undefined; // Clear the token
+    user.verificationTokenExpires = undefined; // Clear expiry
+    await user.save({ validateBeforeSave: false }); // Save changes
+
+    res.status(200).json({ msg: 'Email verified successfully! You can now log in.' });
+  } catch (err) {
+    console.error('Email verification error:', err.message);
+    res.status(500).json({ msg: 'Error verifying email. Please try again later.' });
+  }
+});
+
+// @route   POST api/auth/resend-verification
+// @desc    Resend email verification link
+// @access  Public
+router.post('/resend-verification', [
+  check('email', 'Please include a valid email').isEmail(),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      // Don't reveal if user exists for security reasons
+      return res.status(200).json({ msg: 'If an account with that email exists and is unverified, a new verification link has been sent.' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ msg: 'This account is already verified. You can log in.' });
+    }
+
+    // Generate a new verification token
+    const verificationTokenPlain = user.createEmailVerificationToken(); // This method is on the User model
+    await user.save({ validateBeforeSave: false }); // Save the new token and expiry
+
+    const verifyURL = `${process.env.FRONTEND_URL}/verify-email/${verificationTokenPlain}`;
+    // Using the improved HTML email template
+    const emailHtml = `
+    <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="padding: 20px 0 30px 0;" align="center">
+            <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; border: 1px solid #cccccc; background-color: #ffffff;">
+              <tr>
+                <td align="center" bgcolor="#007bff" style="padding: 40px 0 30px 0; color: #ffffff; font-size: 28px; font-weight: bold;">
+                  SoftSolution Email Verification
+                </td>
+              </tr>
+              <tr>
+                <td bgcolor="#ffffff" style="padding: 40px 30px 40px 30px;">
+                  <h1 style="font-size: 24px; margin: 0 0 20px 0;">Hi ${user.username},</h1>
+                  <p style="margin: 0 0 12px 0; font-size: 16px; line-height: 24px;">You requested a new verification link for your MeetSphere account. Please click the button below to verify your email address:</p>
+                  <p style="text-align: center; margin: 20px 0;"><a href="${verifyURL}" target="_blank" style="background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">Verify Your Email</a></p>
+                  <p style="margin: 0 0 12px 0; font-size: 16px; line-height: 24px;">This verification link will expire in 10 minutes.</p>
+                  <p style="margin: 0; font-size: 16px; line-height: 24px;">If you did not request this, please ignore this email.</p>
+                </td>
+              </tr>
+              <tr>
+                <td bgcolor="#eeeeee" style="padding: 30px 30px; text-align: center; font-size: 14px; color: #555555;">
+                  &copy; ${new Date().getFullYear()} MeetSphere. All rights reserved.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    `;
+
+    await sendEmail({
+      email: user.email,
+      subject: 'SoftSolution - New Email Verification Link',
+      html: emailHtml,
+    });
+
+    res.status(200).json({ msg: 'A new verification link has been sent to your email address. Please check your inbox.' });
+  } catch (err) {
+    console.error('Resend verification error:', err.message);
+    // Check if the error is from sendEmail utility
+    if (err.message.includes('Email could not be sent')) {
+        return res.status(500).json({ msg: 'Failed to send verification email. Please try again later or contact support.' });
+    }
+    res.status(500).json({ msg: 'Server error. Please try again later.' });
   }
 });
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext'; // Import useAuth hook
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate, useLocation } from 'react-router-dom'; // Import useNavigate and useLocation
 import { Link } from 'react-router-dom'; // Import Link
 import './AuthPage.css';
 
@@ -14,8 +14,13 @@ const AuthPage = () => {
     password: '',
   });
   const [error, setError] = useState(''); // To display potential errors
+  const [successMessage, setSuccessMessage] = useState(''); // For general success messages
   const [loading, setLoading] = useState(false); // To show loading state
   const navigate = useNavigate(); // Initialize useNavigate
+  const location = useLocation(); // To get state from navigation (e.g., after email verification)
+
+  // Display message passed from VerifyEmailPage
+  useState(() => { if (location.state?.message) { setSuccessMessage(location.state.message); navigate(location.pathname, { replace: true, state: {} }); } }, [location.state, navigate]);
 
   const { username, email, password } = formData;
 
@@ -26,12 +31,14 @@ const AuthPage = () => {
     setIsLogin((prevIsLogin) => !prevIsLogin);
     setFormData({ username: '', email: '', password: '' }); // Reset form on switch
     setError(''); // Clear errors on switch
+    setSuccessMessage(''); // Clear success message on switch
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError(''); // Clear previous errors
     setLoading(true);
+    setSuccessMessage('');
 
     const url = isLogin ? `${API_BASE_URL}/api/auth/login` : `${API_BASE_URL}/api/auth/signup`;
     const body = isLogin
@@ -55,16 +62,20 @@ const AuthPage = () => {
         throw new Error(errorMsg);
       }
 
-      // --- SUCCESS ---
-      // Assuming your login function in AuthContext can also take the user object
-      // If it only takes token, you might need to adjust AuthContext or handle user state here.
-      login(data.token, data.user); // Pass user object to context if it handles it
-      
-      // --- Add these console logs for debugging ---
-      console.log("Data received from API:", data);
-      console.log("User object from API data:", data.user);
-      console.log("User role from API data:", data.user?.role); // Use optional chaining just in case data.user is undefined
-      // Navigation will now be handled by an effect in App.js or AuthContext
+      if (isLogin) {
+        // --- LOGIN SUCCESS ---
+        login(data.token, data.user); // Pass user object to context
+        console.log("Login successful. Data received from API:", data);
+        // Navigation will be handled by App.js useEffect based on authentication state
+      } else {
+        // --- SIGNUP SUCCESS ---
+        // Don't log in. Show a message to verify email.
+        setSuccessMessage(data.msg || 'Registration successful! Please check your email to verify your account.');
+        // Optionally, reset the form fields after successful signup
+        setFormData({ username: '', email: '', password: '' });
+        console.log("Signup successful. Message from API:", data.msg);
+      }
+
     } catch (err) {
       console.error('Auth Error:', err.message);
       setError(err.message);
@@ -78,6 +89,7 @@ const AuthPage = () => {
       <div className="auth-form-container"> {/* Keep this container */}
         <h2>{isLogin ? 'Login' : 'Sign Up'}</h2>
         <form onSubmit={onSubmit} className="auth-form"> {/* Add class to form */}
+          {successMessage && <p className="success-message">{successMessage}</p>}
           {!isLogin && (
             <div className="form-group">
               <label htmlFor="username">Username</label>
