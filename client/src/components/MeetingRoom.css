@@ -843,12 +843,20 @@
   color: #f0f0f0; /* Light text color for readability on dark background */
   border-top: 4px solid #555; /* Default top border, overridden by type */
   animation: fadeInAlert 0.3s ease-out;
+  display: flex; /* Added for flex column layout */
+  flex-direction: column; /* Added for flex column layout */
 }
 
 @keyframes fadeInAlert {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.custom-alert-content { /* New wrapper for title and message */
+  flex-grow: 1;
+}
+
+/* Ensure p has enough space if content is short and buttons push it up */
+/* .custom-alert-box p { min-height: 50px; } */ /* Optional: adjust as needed */
 
 .custom-alert-box h4 {
   margin-top: 0;
@@ -864,15 +872,22 @@
   line-height: 1.6;
 }
 
+.custom-alert-actions {
+  display: flex;
+  justify-content: flex-end; /* Align buttons to the right */
+  gap: 15px; /* Space between buttons */
+  margin-top: 20px; /* Space above the buttons */
+}
+
 .custom-alert-button {
   /* background-color: #007bff; Old solid blue */
   background-image: linear-gradient(135deg, #20bf55, #01baef); /* Matching AdminDashboard/Profile primary buttons */
   color: white;
   border: none;
-  padding: 12px 30px; /* Generous padding for a primary button */
+  padding: 10px 25px; /* Adjusted padding */
   border-radius: 4px; /* Match dashboard button radius */
   cursor: pointer;
-  font-size: 1em;
+  font-size: 0.95em; /* Adjusted font size */
   font-weight: bold; /* Match dashboard button font-weight */
   transition: opacity 0.2s ease, transform 0.1s ease; /* Match dashboard button transition */
 }
@@ -885,6 +900,17 @@
 .custom-alert-button:active {
   transform: scale(0.98); /* Slight press effect */
 }
+.custom-alert-button.cancel {
+  background-image: none; /* Remove gradient for cancel button */
+  background-color: #6c757d; /* Grey, similar to other secondary/dashboard buttons */
+  color: white;
+}
+
+.custom-alert-button.cancel:hover {
+  background-color: #5a6268; /* Darker grey on hover */
+  opacity: 1; /* Ensure full opacity on hover if primary had it */
+}
+
 
 /* Type-specific styling for alert accents */
 .custom-alert-box.custom-alert-error {

@@ -5,6 +5,10 @@ import { Link } from 'react-router-dom';
 import { FaUsers, FaUser, FaTrash, FaSpinner, FaArrowLeft, FaUserShield, FaUserTag, FaSearch, FaFilter } from 'react-icons/fa'; // Changed FaEdit to FaUser
 import './ManageUsers.css'; // We'll create this CSS file next
 
+// If MeetingRoom.css is not imported globally (e.g., in App.js or index.js),
+// and its styles are not conflicting, you can import it here for the alert.
+// import './MeetingRoom.css'; // Or ensure styles are globally available
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const ManageUsers = () => {
@@ -18,6 +22,18 @@ const ManageUsers = () => {
   const [roleFilter, setRoleFilter] = useState(''); // 'all', 'user', 'admin'
   const [displayedSearchTerm, setDisplayedSearchTerm] = useState(''); // For the input field value
   const debounceTimeoutRef = useRef(null);
+
+  // State for custom confirmation alert
+  const [alertConfig, setAlertConfig] = useState({
+    isVisible: false,
+    title: '',
+    message: '',
+    type: 'info', // 'info', 'success', 'error', 'warning'
+    onConfirm: null,
+    onCancel: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+  });
   
   console.log('%c[ManageUsers Component] TOP LEVEL - Rendering. AuthContextLoading:', 'color: lime; font-weight: bold;', authContextLoading, 'ManagerUser:', managerUser, 'Token:', token ? 'Exists' : 'Missing');
 
@@ -130,6 +146,26 @@ const ManageUsers = () => {
     }
   };
 
+  // Function to show the custom confirmation alert
+  const showConfirmationAlert = (config) => {
+    setAlertConfig({
+      isVisible: true,
+      title: config.title || 'Confirm Action',
+      message: config.message || 'Are you sure?',
+      type: config.type || 'warning',
+      onConfirm: config.onConfirm,
+      onCancel: config.onCancel,
+      confirmText: config.confirmText || 'Confirm',
+      cancelText: config.cancelText || 'Cancel',
+    });
+  };
+
+  // Function to close the custom confirmation alert
+  const closeAlert = () => {
+    setAlertConfig(prev => ({ ...prev, isVisible: false, onConfirm: null, onCancel: null }));
+  };
+
+
   const handleDeleteUser = async (userId, username) => {
     setMessage('');
     setError('');
@@ -139,21 +175,30 @@ const ManageUsers = () => {
       return;
     }
 
-    if (window.confirm(`Are you sure you want to delete user "${username}" (ID: ${userId})? This action cannot be undone.`)) {
-      try {
-        // API call to delete user: DELETE /api/users/:userId
-        // For now, this is a placeholder. You'll need to implement the actual API call.
-        console.log(`Attempting to delete user ${userId}`);
-        await axios.delete(`${API_BASE_URL}/api/manager/users/${userId}`, {
+    showConfirmationAlert({
+      title: 'Confirm Deletion',
+      message: `Are you sure you want to delete user "${username}" (ID: ${userId})? This action cannot be undone.`,
+      type: 'error', // Using 'error' type for a destructive action
+      confirmText: 'Delete',
+      onConfirm: async () => {
+        try {
+          console.log(`Attempting to delete user ${userId}`);
+          await axios.delete(`${API_BASE_URL}/api/manager/users/${userId}`, {
             headers: { Authorization: `Bearer ${token}` },
-        });
-        setMessage(`User ${username} (ID: ${userId}) deleted successfully.`);
-        fetchUsers(); // Re-fetch users
-      } catch (err) {
-        setError(err.response?.data?.message || `Failed to delete user ${userId}.`);
-        console.error("Delete user error:", err);
+          });
+          setMessage(`User ${username} (ID: ${userId}) deleted successfully.`);
+          fetchUsers(); // Re-fetch users
+          setTimeout(() => setMessage(''), 3000); // Clear message after 3s
+        } catch (err) {
+          setError(err.response?.data?.message || `Failed to delete user ${userId}.`);
+          console.error("Delete user error:", err);
+          setTimeout(() => setError(''), 3000); // Clear error after 3s
+        }
+      },
+      onCancel: () => {
+        // Optional: console.log('Deletion cancelled by user.');
       }
-    }
+    });
   };
 
   console.log('%c[ManageUsers Component] Before return. AuthContextLoading:', 'color: lime; font-weight: bold;', authContextLoading, 'ComponentLoading:', componentLoading);
@@ -276,6 +321,41 @@ const ManageUsers = () => {
         </> 
       )
     } {/* This closes the ternary operator's else block */}
+
+      {/* Custom Confirmation Alert Modal */}
+      {alertConfig.isVisible && (
+        <div className="custom-alert-overlay" onClick={closeAlert}> {/* Closes on overlay click */}
+          <div 
+            className={`custom-alert-box custom-alert-${alertConfig.type}`}
+            onClick={(e) => e.stopPropagation()} // Prevents closing when clicking inside the box
+          >
+            <div className="custom-alert-content">
+              <h4>{alertConfig.title}</h4>
+              <p>{alertConfig.message}</p>
+            </div>
+            <div className="custom-alert-actions">
+              <button
+                className="custom-alert-button cancel"
+                onClick={() => {
+                  if (alertConfig.onCancel) alertConfig.onCancel();
+                  closeAlert();
+                }}
+              >
+                {alertConfig.cancelText}
+              </button>
+              <button
+                className="custom-alert-button" // Default style is for confirm
+                onClick={() => {
+                  if (alertConfig.onConfirm) alertConfig.onConfirm();
+                  closeAlert();
+                }}
+              >
+                {alertConfig.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div> // This closes className="manage-users-container"
   ); // This closes the return statement
 };
