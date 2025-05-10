@@ -1,13 +1,16 @@
-import React, { useEffect } from 'react'; // Import useEffect
+import React, { useEffect, useState } from 'react'; // Import useEffect and useState
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
-import { FiLogOut, FiUser, FiChevronDown, FiUsers } from 'react-icons/fi'; // Removed FiUserPlus
+import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
+import { FiLogOut, FiUser, FiChevronDown, FiUsers, FiVideo, FiLogIn } from 'react-icons/fi'; // Removed FiPlusSquare
 // import BackgroundAnimation from './BackgroundAnimation'; // Remove import
 import './ManagerDashboard.css'; // Import the new CSS
 
 function ManagerDashboard() {
     const { user, logout } = useAuth(); // Removed userUpdateCount
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = React.useState(false);
+    const navigate = useNavigate();
+    const [roomIdInput, setRoomIdInput] = useState('');
+    const [joinError, setJoinError] = useState(''); // Optional: for displaying errors
 
     useEffect(() => {
         // This effect logs whenever the user object OR the update count changes.
@@ -16,6 +19,15 @@ function ManagerDashboard() {
 
     const toggleProfileDropdown = () => {
         setIsProfileDropdownOpen(prev => !prev);
+    };
+
+    const handleJoinMeeting = () => {
+      if (roomIdInput.trim()) {
+        navigate(`/room/${roomIdInput.trim()}`); // Ensure your meeting route is /room/:roomId
+      } else {
+        setJoinError('Please enter a Room ID to join.');
+        setTimeout(() => setJoinError(''), 3000); // Clear error after 3 seconds
+      }
     };
 
     return (
@@ -70,6 +82,32 @@ function ManagerDashboard() {
                     <Link to="/manager/manage-users" className="dashboard-button primary">
                         Manage Users
                     </Link>
+                </section>
+
+                {/* Join or Create Meeting Section */}
+                <section className="dashboard-section">
+                  <h2><FiVideo /> Join a Meeting</h2>
+                  <p>Enter an existing Room ID to join a meeting.</p>
+                  
+                  {joinError && <p style={{ color: '#dc3545', marginBottom: '15px' }}>{joinError}</p>}
+
+                  <div className="join-room-controls">
+                    <input
+                      type="text"
+                      className="dashboard-input"
+                      placeholder="Enter Room ID"
+                      value={roomIdInput}
+                      onChange={(e) => setRoomIdInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleJoinMeeting()}
+                    />
+                    <button
+                      onClick={handleJoinMeeting}
+                      className="dashboard-button"
+                      title="Join Existing Meeting"
+                    >
+                      <FiLogIn /> Join
+                    </button>
+                  </div>
                 </section>
             </main>
         </div>

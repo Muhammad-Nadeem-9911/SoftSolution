@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware'); // Adjust path if your auth middleware is elsewhere
 const authorizeRole = require('../middleware/authorizeRole');
+
 const {
   getManageableUsers,
   updateUserRoleByManager,

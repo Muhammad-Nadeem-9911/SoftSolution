@@ -1,5 +1,6 @@
 // d:\Zoom-Clone-Mern\server\controllers\managerActionsController.js
 const User = require('../models/User'); // Assuming your User model is in ../models/User
+const cloudinary = require('cloudinary').v2; // Import Cloudinary
 
 // @desc    Get all users (for manager to manage)
 // @route   GET /api/manager/users
@@ -115,6 +116,48 @@ exports.deleteUserByManager = async (req, res) => {
     if (targetUser._id.toString() === performingUser.id) {
         return res.status(400).json({ msg: 'Cannot delete your own account.' });
     }
+
+    // --- Delete profile picture from Cloudinary if it exists ---
+    if (targetUser.profilePictureUrl && targetUser.profilePictureUrl.includes('cloudinary.com')) {
+        try {
+            // Extract public_id from the Cloudinary URL.
+            // This logic assumes your Cloudinary URLs might look like:
+            // http://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/your_folder/image_id.jpg
+            // The public_id needed for deletion is typically "your_folder/image_id".
+
+            let publicIdForDeletion = null;
+            const urlParts = targetUser.profilePictureUrl.split('/');
+            const uploadIndex = urlParts.indexOf('upload');
+
+            if (uploadIndex !== -1 && uploadIndex + 1 < urlParts.length) {
+                // Get the parts after "/upload/"
+                let pathParts = urlParts.slice(uploadIndex + 1);
+                // If the next part is a version (e.g., v1234567890), skip it
+                if (pathParts.length > 0 && pathParts[0].match(/^v\d+$/)) {
+                    pathParts.shift();
+                }
+                // The remaining parts form the public_id (folder/image_name), remove extension
+                if (pathParts.length > 0) {
+                    publicIdForDeletion = pathParts.join('/').replace(/\.(jpg|jpeg|png|gif)$/i, '');
+                }
+            }
+
+            if (publicIdForDeletion) {
+                console.log(`Attempting to delete Cloudinary image with public_id: ${publicIdForDeletion} for user ${targetUser.username}`);
+                const deletionResult = await cloudinary.uploader.destroy(publicIdForDeletion);
+                console.log('Cloudinary deletion result:', deletionResult);
+                if (deletionResult.result !== 'ok' && deletionResult.result !== 'not found') {
+                    console.warn(`Cloudinary image deletion for public_id ${publicIdForDeletion} was not 'ok' or 'not found':`, deletionResult.result);
+                }
+            } else {
+                console.warn(`Could not reliably extract public_id from URL: ${targetUser.profilePictureUrl} for user ${targetUser.username}. Image may not be deleted from Cloudinary.`);
+            }
+        } catch (cloudinaryError) {
+            console.error(`Error deleting profile picture from Cloudinary for user ${targetUser._id}:`, cloudinaryError);
+            // Continue with user deletion even if Cloudinary deletion fails, to not block the primary operation.
+        }
+    }
+    // --- End Cloudinary Deletion Logic ---
 
     await User.findByIdAndDelete(targetUserId);
     res.json({ msg: 'User account deleted successfully by manager.' });
