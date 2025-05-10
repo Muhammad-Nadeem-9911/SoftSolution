@@ -1,5 +1,6 @@
 // d:\Zoom-Clone-Mern\server\controllers\managerActionsController.js
 const User = require('../models/User'); // Assuming your User model is in ../models/User
+const sendEmail = require('../utils/sendEmail'); // Import the sendEmail utility
 const cloudinary = require('cloudinary').v2; // Import Cloudinary
 
 // @desc    Get all users (for manager to manage)
@@ -159,8 +160,28 @@ exports.deleteUserByManager = async (req, res) => {
     }
     // --- End Cloudinary Deletion Logic ---
 
+    // --- Send email notification to the user ---
+    try {
+      await sendEmail({
+        email: targetUser.email,
+        subject: 'Account Removal Notification',
+        html: `
+          <p>Dear ${targetUser.username || 'User'},</p>
+          <p>This email is to inform you that your account on our platform has been removed by a manager.</p>
+          <p>If you believe this was done in error or have any questions, please contact our support team.</p>
+          <p>Sincerely,</p>
+          <p>The SoftSolution Administration</p>
+        `,
+      });
+      console.log(`Account removal notification email sent to ${targetUser.email} for user ${targetUser.username || targetUser._id}`);
+    } catch (emailError) {
+      console.error(`Failed to send account removal notification email to ${targetUser.email} (User ID: ${targetUser._id}):`, emailError.message);
+      // Do not block user deletion if email sending fails. Log the error and continue.
+    }
+    // --- End Email Notification Logic ---
+
     await User.findByIdAndDelete(targetUserId);
-    res.json({ msg: 'User account deleted successfully by manager.' });
+    res.json({ msg: `User account for '${targetUser.username || targetUser.email}' deleted successfully by manager. An email notification has been dispatched.` });
 
   } catch (err) {
     console.error(err.message);

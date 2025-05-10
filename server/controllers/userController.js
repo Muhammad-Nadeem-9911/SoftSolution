@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 // const fs = require('fs'); // No longer needed for deleting local files here
 // const path = require('path'); // No longer needed for constructing local paths here
 // const { validationResult } = require('express-validator'); // Optional: for input validation
+const sendEmail = require('../utils/sendEmail'); // For sending emails
 const cloudinary = require('../config/cloudinary'); // Import configured Cloudinary instance
 
 // --- Update Email ---
@@ -35,6 +36,84 @@ exports.updateEmail = async (req, res) => {
 
     } catch (err) {
         console.error("Error updating email:", err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// @desc    Delete user's own account
+// @route   DELETE /api/users/account
+// @access  Private
+exports.deleteMyAccount = async (req, res) => {
+    const userId = req.user.id; // Get user ID from auth middleware
+
+    try {
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        // --- Delete profile picture from Cloudinary if it exists ---
+        if (user.profilePictureUrl && user.profilePictureUrl.includes('cloudinary.com')) {
+            try {
+                let publicIdForDeletion = null;
+                const urlParts = user.profilePictureUrl.split('/');
+                const uploadIndex = urlParts.indexOf('upload');
+
+                if (uploadIndex !== -1 && uploadIndex + 1 < urlParts.length) {
+                    let pathParts = urlParts.slice(uploadIndex + 1);
+                    if (pathParts.length > 0 && pathParts[0].match(/^v\d+$/)) {
+                        pathParts.shift(); // Skip version part like v1234567890
+                    }
+                    if (pathParts.length > 0) {
+                        publicIdForDeletion = pathParts.join('/').replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+                    }
+                }
+
+                if (publicIdForDeletion) {
+                    console.log(`[Delete Account] Attempting to delete Cloudinary image with public_id: ${publicIdForDeletion} for user ${user.username}`);
+                    const deletionResult = await cloudinary.uploader.destroy(publicIdForDeletion);
+                    console.log('[Delete Account] Cloudinary deletion result:', deletionResult);
+                    if (deletionResult.result !== 'ok' && deletionResult.result !== 'not found') {
+                        console.warn(`[Delete Account] Cloudinary image deletion for public_id ${publicIdForDeletion} was not 'ok' or 'not found':`, deletionResult.result);
+                    }
+                } else {
+                    console.warn(`[Delete Account] Could not reliably extract public_id from URL: ${user.profilePictureUrl} for user ${user.username}. Image may not be deleted from Cloudinary.`);
+                }
+            } catch (cloudinaryError) {
+                console.error(`[Delete Account] Error deleting profile picture from Cloudinary for user ${user._id}:`, cloudinaryError);
+                // Continue with account deletion even if Cloudinary deletion fails.
+            }
+        }
+        // --- End Cloudinary Deletion Logic ---
+
+        // Delete the user from the database
+        await User.findByIdAndDelete(userId);
+
+        // --- Send email notification to the user ---
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: 'Your Account Has Been Deleted',
+                html: `
+                    <p>Dear ${user.username || 'User'},</p>
+                    <p>This email is to confirm that your account on SoftSolution has been successfully deleted as per your request.</p>
+                    <p>All your data associated with this account has been removed.</p>
+                    <p>If you did not initiate this action, please contact our support team immediately.</p>
+                    <p>Sincerely,</p>
+                    <p>The SoftSolution Team</p>
+                `,
+            });
+            console.log(`[Delete Account] Account deletion confirmation email sent to ${user.email}`);
+        } catch (emailError) {
+            console.error(`[Delete Account] Failed to send account deletion confirmation email to ${user.email}:`, emailError.message);
+            // Do not block the response if email sending fails.
+        }
+        // --- End Email Notification Logic ---
+
+        res.json({ message: 'Your account has been successfully deleted. We have sent a confirmation to your email address.' });
+    } catch (err) {
+        console.error("Error deleting user account:", err.message);
         res.status(500).send('Server Error');
     }
 };

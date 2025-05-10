@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react'; // Removed unused useContext
 import axios from 'axios'; // Assuming you use axios for API calls
 import { useAuth } from '../context/AuthContext'; // Import the useAuth hook instead
-import { Link } from 'react-router-dom'; // Import Link
+import { Link, useNavigate } from 'react-router-dom'; // Import Link and useNavigate
 import './ProfileSettings.css';
-import { FaUserCircle, FaEnvelope, FaLock, FaCamera, FaSpinner, FaUserEdit, FaUserTag, FaArrowLeft } from 'react-icons/fa'; // Added FaArrowLeft
+import { FaUserCircle, FaEnvelope, FaLock, FaCamera, FaSpinner, FaUserEdit, FaUserTag, FaArrowLeft, FaTrash } from 'react-icons/fa'; // Added FaArrowLeft and FaTrash
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const ProfileSettings = () => {
-  const { user, setUser } = useAuth(); // Use the useAuth hook
+  const { user, setUser, logout } = useAuth(); // Use the useAuth hook, add logout
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -19,6 +19,16 @@ const ProfileSettings = () => {
   const [loadingPicture, setLoadingPicture] = useState(false); // Loading state for picture
   const [loadingEmail, setLoadingEmail] = useState(false);   // Loading state for email
   const [loadingPassword, setLoadingPassword] = useState(false); // Loading state for password
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false); // Loading state for account deletion
+  const [deleteConfirmAlert, setDeleteConfirmAlert] = useState({
+    isVisible: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+  });
+  const navigate = useNavigate(); // For redirection
 
   useEffect(() => {
     console.log("[ProfileSettings useEffect [user]] Running. User from context:", user); // Log when this runs
@@ -153,6 +163,58 @@ const ProfileSettings = () => {
     } // Add missing closing brace for finally block
   }; // This brace closes the handleUpdatePassword function
 
+  const showDeleteConfirmationAlert = (config) => {
+    setDeleteConfirmAlert({
+      isVisible: true,
+      title: config.title || 'Confirm Deletion',
+      message: config.message || 'Are you sure?',
+      type: config.type || 'warning', // Default to warning, can be overridden
+      onConfirm: config.onConfirm,
+      confirmText: config.confirmText || 'Delete',
+      cancelText: config.cancelText || 'Cancel',
+    });
+  };
+
+  const closeDeleteConfirmationAlert = () => {
+    setDeleteConfirmAlert(prev => ({ ...prev, isVisible: false, onConfirm: null }));
+  };
+
+  const handleDeleteAccount = async () => {
+    setMessage('');
+    setError('');
+
+    showDeleteConfirmationAlert({
+      title: 'Confirm Account Deletion',
+      message: 'Are you absolutely sure you want to delete your account? This action is permanent and cannot be undone. All your data will be removed.',
+      type: 'error', // Use 'error' type for destructive action styling
+      confirmText: 'Yes, Delete My Account',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setIsDeletingAccount(true);
+        try {
+          const token = localStorage.getItem('token');
+          const response = await axios.delete(`${API_BASE_URL}/api/users/account`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setMessage(response.data.message || 'Account deleted successfully. You will be logged out.');
+          // Wait a bit for the message to be seen, then logout and redirect
+          setTimeout(() => {
+            logout(); // Call logout from AuthContext
+            navigate('/auth'); // Redirect to login/auth page
+          }, 2000);
+        } catch (err) {
+          setError(err.response?.data?.message || 'Failed to delete account. Please try again.');
+          setIsDeletingAccount(false); // Only set back to false on error
+        }
+        // No finally here for setIsDeletingAccount(false) because successful deletion leads to navigation
+      },
+    });
+  };
+
+  const anyLoading = loadingPicture || loadingEmail || loadingPassword || isDeletingAccount;
+
+
+
 
   if (!user) {
     return <div className="profile-container">Loading profile...</div>; // Or redirect to login
@@ -191,11 +253,19 @@ const ProfileSettings = () => {
                 <FaCamera /> Choose Picture
               </label>
               <input id="profile-picture-upload" type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
-              {profilePicture && <button type="submit" className="profile-button primary" disabled={loadingPicture}>
+              {profilePicture && <button type="submit" className="profile-button primary" disabled={anyLoading}>
                 {loadingPicture ? <><FaSpinner className="spinner" /> Uploading...</> : 'Upload New Picture'}
               </button>}
             </form>
           </div> {/* Close picture-section */}
+
+          {/* New Role Section */}
+            <div className="profile-section">
+            <h2><FaUserTag /> Role</h2> {/* Added Icon */}
+              <div className="info-item">Your current role is: <strong>{user?.role}</strong></div>
+              <p style={{ fontSize: '0.85rem', color: '#a0a0a0' }}>User roles cannot be changed from this page.</p>
+            </div>
+            {/* End New Role Section */}
 
           {/* Account Info & Email Update Section */}
           <div className="profile-section">
@@ -207,7 +277,7 @@ const ProfileSettings = () => {
                 <label htmlFor="email"><FaEnvelope /> Email Address</label>
                 <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
-              <button type="submit" className="profile-button primary" disabled={loadingEmail}>
+              <button type="submit" className="profile-button primary" disabled={anyLoading}>
                 {loadingEmail ? <><FaSpinner className="spinner" /> Updating...</> : 'Update Email'}
               </button>
             </form>
@@ -216,12 +286,7 @@ const ProfileSettings = () => {
 
         {/* Right Column */}
         <div className="profile-right-column">
-          {/* Password Update Section */}{/* New Role Section */}
-            <div className="profile-section">
-            <h2><FaUserTag /> Role</h2> {/* Added Icon */}
-              <div className="info-item">Your current role is: <strong>{user?.role}</strong></div>
-              <p style={{ fontSize: '0.85rem', color: '#a0a0a0' }}>User roles cannot be changed from this page.</p>
-            </div>
+          {/* Password Update Section */}
           <div className="profile-section">
             {/* Password Update Form */}
             <form onSubmit={handleUpdatePassword} className="profile-form">
@@ -238,16 +303,61 @@ const ProfileSettings = () => {
                 <label htmlFor="confirmPassword">Confirm New Password</label>
                 <input type="password" id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
               </div>
-              <button type="submit" className="profile-button primary" disabled={loadingPassword}>
+              <button type="submit" className="profile-button primary" disabled={anyLoading}>
                 {loadingPassword ? <><FaSpinner className="spinner" /> Updating...</> : 'Update Password'}
               </button>
             </form>
             </div> {/* Close password profile-section */}
 
-            </div> {/* Close profile-right-column */}
+          {/* Danger Zone - Delete Account Section */}
+          <div className="profile-section danger-zone">
+            <h2><FaTrash /> Danger Zone</h2>
+            <p>Deleting your account is permanent. All your data, including meeting history and profile information, will be removed and cannot be recovered.</p>
+            <button
+              onClick={handleDeleteAccount}
+              className="profile-button danger" // Use a danger-themed button style
+              disabled={anyLoading}
+            >
+              {isDeletingAccount ? <><FaSpinner className="spinner" /> Deleting Account...</> : 'Delete My Account'}
+            </button>
+          </div>
+
+        </div> {/* Close profile-right-column */}
 
       </div> {/* Close profile-layout-container */}
       </div> {/* Close profile-content-area (Moved here) */}
+
+      {/* Custom Confirmation Alert Modal for Deletion */}
+      {deleteConfirmAlert.isVisible && (
+        <div className="custom-alert-overlay" onClick={closeDeleteConfirmationAlert}>
+          <div 
+            className={`custom-alert-box custom-alert-${deleteConfirmAlert.type || 'warning'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="custom-alert-content">
+              <h4>{deleteConfirmAlert.title}</h4>
+              <p>{deleteConfirmAlert.message}</p>
+            </div>
+            <div className="custom-alert-actions">
+              <button
+                className="custom-alert-button cancel"
+                onClick={closeDeleteConfirmationAlert}
+              >
+                {deleteConfirmAlert.cancelText}
+              </button>
+              <button
+                className="custom-alert-button" // Default style is for confirm
+                onClick={() => {
+                  if (deleteConfirmAlert.onConfirm) deleteConfirmAlert.onConfirm();
+                  closeDeleteConfirmationAlert(); // Close after confirm action is initiated
+                }}
+              >
+                {deleteConfirmAlert.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

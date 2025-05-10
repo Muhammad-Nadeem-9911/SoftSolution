@@ -20,4 +20,9 @@ router.put('/update-password', auth, userController.updatePassword);
 // 'profilePicture' is the field name the frontend sends in FormData
 router.post('/update-picture', auth, upload.single('profilePicture'), userController.updateProfilePicture);
 
+// @route   DELETE api/users/account
+// @desc    Delete user's own account
+// @access  Private
+router.delete('/account', auth, userController.deleteMyAccount);
+
 module.exports = router;

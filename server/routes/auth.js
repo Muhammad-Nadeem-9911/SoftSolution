@@ -32,19 +32,20 @@ router.post(
     }
 
     const { username, email, password, role } = req.body; // Allow role specification if needed, otherwise remove it
+        const lowercasedEmail = email.toLowerCase();
 
     try {
       // Check if user already exists (by email or username)
-      let user = await User.findOne({ $or: [{ email }, { username }] });
-      
-      if (user) {
+      // Use lowercasedEmail for checking
+      let existingUser = await User.findOne({ $or: [{ email: lowercasedEmail }, { username }] });      
+      if (existingUser) {
         return res.status(400).json({ msg: 'User already exists with that email or username' });
       }
 
-      // Create new user instance
-      user = new User({
+      // Create new user instance (in memory, not saved yet)
+      const newUser = new User({
         username,
-        email,
+        email: lowercasedEmail, // Store email in lowercase
         password,
         role: role || 'user', // Default to 'user' if not provided or restrict role setting
       });
@@ -52,10 +53,8 @@ router.post(
       // Password will be hashed by the pre-save hook in User.js
 
       // Generate email verification token (method is on the user instance)
-      const verificationTokenPlain = user.createEmailVerificationToken();
+      const verificationTokenPlain = newUser.createEmailVerificationToken();
       // isVerified defaults to false. verificationToken (hashed) and verificationTokenExpires are set by the method.
-
-      await user.save({ validateBeforeSave: false }); // Save user with verification token
 
       // Send verification email
       const verifyURL = `${process.env.FRONTEND_URL}/verify-email/${verificationTokenPlain}`;
@@ -67,12 +66,12 @@ router.post(
               <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; border: 1px solid #cccccc; background-color: #ffffff;">
                 <tr>
                   <td align="center" bgcolor="#007bff" style="padding: 40px 0 30px 0; color: #ffffff; font-size: 28px; font-weight: bold;">
-                    Welcome to MeetSphere!
-                  </td>
+                    Welcome to SoftSolution!
+                 </td>
                 </tr>
                 <tr>
                   <td bgcolor="#ffffff" style="padding: 40px 30px 40px 30px;">
-                    <h1 style="font-size: 24px; margin: 0 0 20px 0;">Hi ${user.username},</h1>
+                    <h1 style="font-size: 24px; margin: 0 0 20px 0;">Hi ${newUser.username},</h1>
                     <p style="margin: 0 0 12px 0; font-size: 16px; line-height: 24px;">Thank you for registering. Please verify your email address to complete your signup by clicking the button below:</p>
                     <p style="text-align: center; margin: 20px 0;"><a href="${verifyURL}" target="_blank" style="background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">Verify Your Email</a></p>
                     <p style="margin: 0 0 12px 0; font-size: 16px; line-height: 24px;">This verification link will expire in 10 minutes.</p>
@@ -91,23 +90,25 @@ router.post(
       </body>
       `;
 
-      try {
-        await sendEmail({
-          email: user.email,
-          subject: 'MeetSphere - Email Verification Required',
-          html: emailHtml,
-        });
-        res.status(201).json({ msg: 'Registration successful! Please check your email to verify your account.' });
-      } catch (emailError) {
-        console.error('Failed to send verification email:', emailError);
-        // Decide if you want to delete the user or let them try to resend verification later
-        // For now, we'll still send a success response for registration, but log the email error.
-        return res.status(500).json({ msg: 'User registered, but failed to send verification email. Please contact support.' });
-        }
+      // Attempt to send verification email BEFORE saving the user
+      await sendEmail({
+        email: newUser.email,
+        subject: 'SoftSolution - Email Verification Required',
+        html: emailHtml,
+      });
+
+      // If email sending was successful, NOW save the user to the database
+      await newUser.save({ validateBeforeSave: false }); // Password hashing happens via pre-save hook
+
+      // Respond with success
+      res.status(201).json({ 
+        msg: 'Registration successful! Please check your email to verify your account.' 
+      });
 
     } catch (err) {
-      console.error('Signup Error:', err.message);
-      res.status(500).json({ msg: 'Server error during signup' }); // Send JSON response
+      console.error('Signup Error:', err.message, err.stack ? err.stack : '');
+      // If email sending failed or user saving failed, the user is not registered.
+      res.status(500).json({ msg: 'Registration failed. There was an issue sending the verification email or saving your account. Please try again later.' });
     }
   }
 );

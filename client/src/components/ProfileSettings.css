@@ -55,7 +55,6 @@
     min-width: 300px; /* Minimum width before wrapping */
     display: flex;
     flex-direction: column;
-    gap: 30px; /* Space between sections within a column */
   }
   
   /* Make the last section in each column grow to fill remaining space */
