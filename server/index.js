@@ -192,6 +192,7 @@ io.on("connection", (socket) => {
       // Update activeMeeting status for the validated user
       userToJoin.activeMeeting.meetingId = roomId;
       userToJoin.activeMeeting.socketId = socket.id;
+      console.log(`[Server Join-Room] User ${userToJoin.username} DB profilePictureUrl: ${userToJoin.profilePictureUrl}`);
       userToJoin.activeMeeting.joinedAt = new Date();
       await userToJoin.save();
       console.log(`User ${userId} activeMeeting status updated for room ${roomId}, socket ${socket.id}`);
@@ -200,6 +201,7 @@ io.on("connection", (socket) => {
       const userRole = userToJoin.role;
       console.log(`[Server] Role for ${username}: ${userRole}`);
 
+      socket.userProfilePictureUrl = userToJoin.profilePictureUrl; // Ensure this is set before calling performRoomJoiningTasks
       const userColor = generateColorFromString(userId); // Generate userColor here
       // Continue with existing room setup logic
       await performRoomJoiningTasks(socket, roomId, userId, peerConnectionId, username, userRole, userColor); // Pass it
@@ -251,7 +253,13 @@ io.on("connection", (socket) => {
     // The fallback below is less critical now since we generate it before calling, but harmless.
     // if (!userColor) userColor = generateColorFromString(userId);
 
-    const userInfo = { userId, username, peerConnectionId, color: userColor, socketId: socket.id, role: userRole };
+    // Assuming userToJoin (fetched before calling this function) has profilePictureUrl
+    // We stored it on socket.userProfilePictureUrl in the join-room handler
+    if (socket.userProfilePictureUrl === undefined) {
+      console.warn(`[performRoomJoiningTasks] socket.userProfilePictureUrl is undefined for user ${username}. This should have been set in join-room.`);
+    }
+
+    const userInfo = { userId, username, peerConnectionId, color: userColor, socketId: socket.id, role: userRole, profilePictureUrl: socket.userProfilePictureUrl }; // Use profilePictureUrl from socket
     // Try assigning a new array instead of pushing
     rooms[roomId] = [...rooms[roomId], userInfo];
     // Log the state IMMEDIATELY after assigning the new array
@@ -261,7 +269,15 @@ io.on("connection", (socket) => {
     // Send updated user list (just names/IDs) to everyone in the room
     // Include color in the user list
     // Include socketId and role in the user list sent to clients
-    const userList = rooms[roomId].map(u => ({ userId: u.userId, username: u.username, color: u.color, socketId: u.socketId, role: u.role })); // Add socketId and role
+    const userList = rooms[roomId].map(u => ({
+      userId: u.userId,
+      username: u.username,
+      color: u.color,
+      socketId: u.socketId,
+      role: u.role,
+      profilePictureUrl: u.profilePictureUrl, // Ensure this is correctly mapped
+      peerId: u.peerConnectionId // Ensure this is correctly mapped
+    }));
     // Log the state RIGHT before emitting
     const currentRoomStateForEmit = rooms[roomId];
     console.log(`[Server] State of rooms[${roomId}] right before mapping/emitting user-list:`, JSON.stringify(currentRoomStateForEmit)); // Log the array content stringified
@@ -390,6 +406,16 @@ io.on("connection", (socket) => {
       const controlForAdmin = !hasControl; // Admin gets control if target loses it, loses if target gets it
       io.to(roomId).emit("signal:whiteboard-permission-update", { targetSocketId: adminInRoom.socketId, hasControl: controlForAdmin });
       console.log(`[Server] Also setting admin (${adminInRoom.username}) control to ${controlForAdmin}`);
+    }
+  });
+
+  // Handle camera status changes
+  socket.on("camera-status-changed", ({ roomId, peerId, isEnabled }) => {
+    // Ensure the sender is actually in the room they claim
+    if (socket.rooms.has(roomId) && socket.peerConnectionId === peerId) {
+      console.log(`[Server] Camera status changed for peer ${peerId} in room ${roomId} to ${isEnabled}`);
+      // Broadcast to everyone else in the room
+      socket.to(roomId).emit("remote-camera-status-changed", { peerId, isEnabled });
     }
   });
 });

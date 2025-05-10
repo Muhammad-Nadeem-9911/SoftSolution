@@ -12,69 +12,116 @@ import { FaCrown } from 'react-icons/fa'; // Added FaCrown for admin/controller 
 
 
 // --- Simplified PeerVideo Component ---
-const PeerVideo = ({ peerCall }) => { // Renamed prop to peerCall for clarity
+const PeerVideo = ({ peerCall, username, profilePictureUrl, isRemoteVideoEnabled }) => {
   const videoRef = useRef();
   const [remoteStream, setRemoteStream] = useState(null);
+  // Initialize based on isRemoteVideoEnabled if provided, otherwise assume false until stream comes.
+  const [isVideoActuallyPlaying, setIsVideoActuallyPlaying] = useState(isRemoteVideoEnabled === undefined ? false : isRemoteVideoEnabled);
 
+  // Effect 1: Get the stream from peerCall and manage its lifecycle
   useEffect(() => {
     if (!peerCall) {
-      setRemoteStream(null); // Clear stream if call is removed
+      console.log(`[PeerVideo ${peerCall?.peer} for ${username}] No peerCall, clearing remoteStream.`);
+      setRemoteStream(null);
       return;
     }
 
-    console.log(`[PeerVideo ${peerCall.peer}] Effect for call. Open: ${peerCall.open}, RemoteStream: ${!!peerCall.remoteStream}`);
-
     // If remoteStream is already on the call object, use it directly
     if (peerCall.remoteStream) {
-      console.log(`[PeerVideo ${peerCall.peer}] Using existing remoteStream from call object.`);
+      console.log(`[PeerVideo ${peerCall.peer} for ${username}] Using existing remoteStream from call object.`);
       setRemoteStream(peerCall.remoteStream);
     }
 
-    const handleStream = (stream) => {
-      console.log(`[PeerVideo ${peerCall.peer}] 'stream' event received. Stream ID: ${stream.id}`);
+    const handleStreamEvent = (stream) => {
+      console.log(`[PeerVideo ${peerCall.peer} for ${username}] 'stream' event received. Stream ID: ${stream.id}`);
       setRemoteStream(stream);
     };
-
-    const handleClose = () => {
-      console.log(`[PeerVideo ${peerCall.peer}] 'close' event received. Clearing stream.`);
+    const handleCloseEvent = () => {
+      console.log(`[PeerVideo ${peerCall.peer} for ${username}] 'close' event received. Clearing remoteStream.`);
+      setRemoteStream(null);
+    };
+    const handleErrorEvent = (err) => {
+      console.error(`[PeerVideo ${peerCall.peer} for ${username}] 'error' event on call:`, err);
       setRemoteStream(null);
     };
 
-    const handleError = (err) => {
-      console.error(`[PeerVideo ${peerCall.peer}] 'error' event on call:`, err);
-      setRemoteStream(null);
-    };
-
-    peerCall.on('stream', handleStream);
-    peerCall.on('close', handleClose);
-    peerCall.on('error', handleError);
+    peerCall.on('stream', handleStreamEvent);
+    peerCall.on('close', handleCloseEvent);
+    peerCall.on('error', handleErrorEvent);
 
     return () => {
-      peerCall.off('stream', handleStream);
-      peerCall.off('close', handleClose);
-      peerCall.off('error', handleError);
-      console.log(`[PeerVideo ${peerCall.peer}] Cleaned up listeners.`);
+      console.log(`[PeerVideo ${peerCall.peer} for ${username}] Cleaning up peerCall listeners.`);
+      peerCall.off('stream', handleStreamEvent);
+      peerCall.off('close', handleCloseEvent);
+      peerCall.off('error', handleErrorEvent);
     };
-  }, [peerCall]);
+  }, [peerCall, username]);
 
+  // Effect 2: Update isVideoActuallyPlaying based on the signaled remote status
   useEffect(() => {
-    if (videoRef.current && remoteStream) {
-      console.log(`[PeerVideo ${peerCall?.peer}] Setting srcObject to stream ID: ${remoteStream.id}`);
-      if (videoRef.current.srcObject !== remoteStream) { // Only update if different
-        videoRef.current.srcObject = remoteStream;
-        videoRef.current.play().catch(error => { // Explicitly play remote stream
-          console.error(`[PeerVideo ${peerCall?.peer}] Error attempting to play remote video:`, error);
-        });
-      }
-    } else if (videoRef.current) {
-      videoRef.current.srcObject = null; // Clear if no stream
+    // If isRemoteVideoEnabled is explicitly passed (meaning we got a signal), use it.
+    // Otherwise, if a stream exists, we can try to infer (e.g., for initial connection before signal).
+    if (typeof isRemoteVideoEnabled === 'boolean') {
+      console.log(`[PeerVideo ${peerCall?.peer} for ${username}] Using signaled isRemoteVideoEnabled: ${isRemoteVideoEnabled}`);
+      setIsVideoActuallyPlaying(isRemoteVideoEnabled);
+    } else if (remoteStream) {
+      // Fallback for initial state if no signal yet, but stream arrived
+      const tracks = remoteStream.getVideoTracks();
+      const active = tracks.length > 0 && tracks.some(t => !t.muted && t.readyState === 'live');
+      console.log(`[PeerVideo ${peerCall?.peer} for ${username}] No signal for isRemoteVideoEnabled, inferring from stream: ${active}`);
+      setIsVideoActuallyPlaying(active);
+    } else {
+      // No signal and no stream
+      setIsVideoActuallyPlaying(false);
     }
-  }, [remoteStream, peerCall]); // Depend on remoteStream and the peerCall object itself
+    // Note: We are removing the direct track mute/unmute listeners for now,
+    // relying on the signaled status. If needed, they can be added back carefully
+    // to work in conjunction with the signaled status.
+  }, [isRemoteVideoEnabled, remoteStream, peerCall?.peer, username]);
 
+  // Effect 3: Manage video element srcObject and playback based on isVideoActuallyPlaying
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    if (isVideoActuallyPlaying && remoteStream && remoteStream.active) { // Added remoteStream.active check
+      console.log(`[PeerVideo DOM ${peerCall?.peer} for ${username}] Playing video. isVideoActuallyPlaying: true`);
+      if (videoElement.srcObject !== remoteStream) {
+        videoElement.srcObject = remoteStream;
+      }
+      videoElement.play().catch(e => console.error(`[PeerVideo DOM ${peerCall?.peer} for ${username}] Error playing video:`, e));
+    } else {
+      console.log(`[PeerVideo DOM ${peerCall?.peer} for ${username}] Stopping video / clearing srcObject. isVideoActuallyPlaying: ${isVideoActuallyPlaying}, remoteStream active: ${remoteStream?.active}`);
+      videoElement.srcObject = null;
+    }
+  }, [isVideoActuallyPlaying, remoteStream, peerCall?.peer, username]); // videoRef.current is stable
   if (!peerCall) return null; // Don't render if no call
+  console.log(`[PeerVideo Render ${peerCall?.peer}] Username: ${username}, ProfilePicURL: ${profilePictureUrl}, isVideoActuallyPlaying: ${isVideoActuallyPlaying}`);
 
-  return <video ref={videoRef} className="video-element" data-userid={peerCall.peer} autoPlay playsInline />;
-};
+return (
+    <>
+      <video
+        ref={videoRef}
+        className={`video-element ${!isVideoActuallyPlaying ? 'video-hidden' : ''}`}
+        data-userid={peerCall.peer}
+        autoPlay
+        playsInline
+      />
+      {!isVideoActuallyPlaying && (
+        <div className="video-placeholder">
+          {profilePictureUrl ? (
+            <img src={profilePictureUrl} alt={username || 'User'} className="profile-picture-in-video" />
+          ) : (
+            <div className="default-avatar-in-video">
+              {(username?.charAt(0) || '?').toUpperCase()}
+            </div>
+          )}
+          <span>{username || 'User'}</span>
+          {/* You could add a "Camera Off" specific message here if desired */}
+        </div>
+      )}
+    </>
+  );};
 
 
 const MeetingRoom = () => {
@@ -110,6 +157,7 @@ const MeetingRoom = () => {
   const [localHasWhiteboardControl, setLocalHasWhiteboardControl] = useState(false);
   const [initialDrawingHistory, setInitialDrawingHistory] = useState([]);
 
+  const [remoteCameraStatuses, setRemoteCameraStatuses] = useState({}); // { [peerId]: boolean }
   // State for custom alert
   const [customAlert, setCustomAlert] = useState({
     show: false,
@@ -387,6 +435,14 @@ const MeetingRoom = () => {
       }
     };
 
+    const handleRemoteCameraStatusChanged = ({ peerId, isEnabled }) => {
+      console.log(`[Socket] 'remote-camera-status-changed' received for peer ${peerId}, isEnabled: ${isEnabled}`);
+      setRemoteCameraStatuses(prevStatuses => ({
+        ...prevStatuses,
+        [peerId]: isEnabled,
+      }));
+    };
+
     currentSocket.on('room-joined', handleRoomJoined);
     currentSocket.on('join-room-error', handleJoinRoomError); // Add new listener
     currentSocket.on('user-connected', handleUserConnected);
@@ -396,6 +452,7 @@ const MeetingRoom = () => {
     currentSocket.on('signal:whiteboard-permission-update', handleWhiteboardPermissionUpdate);
     currentSocket.on('user-list', handleUserList);
     currentSocket.on('chat-history', handleChatHistory);
+    currentSocket.on('remote-camera-status-changed', handleRemoteCameraStatusChanged);
     // Add listener for whiteboard draw events
     // currentSocket.on('draw', handleDrawEvent); // Assuming Whiteboard component handles this
     // currentSocket.on('canvas-cleared', handleCanvasCleared); // Assuming Whiteboard component handles this
@@ -411,6 +468,7 @@ const MeetingRoom = () => {
       currentSocket.off('signal:whiteboard-permission-update', handleWhiteboardPermissionUpdate);
       currentSocket.off('user-list', handleUserList);
       currentSocket.off('chat-history', handleChatHistory);
+      currentSocket.off('remote-camera-status-changed', handleRemoteCameraStatusChanged);
       // currentSocket.off('draw', handleDrawEvent);
       // currentSocket.off('canvas-cleared', handleCanvasCleared);
     };
@@ -522,6 +580,10 @@ const MeetingRoom = () => {
       const newState = !isCameraEnabled;
       videoTracks[0].enabled = newState; // Enable/disable the track
       setIsCameraEnabled(newState); // Update state
+      // Emit camera status change
+      if (socketRef.current && hasJoinedRoom) {
+        socketRef.current.emit("camera-status-changed", { roomId, peerId: peerIdRef.current, isEnabled: newState });
+      }
       console.log(`[Controls] Camera ${newState ? 'enabled' : 'disabled'}`);
     }
   };
@@ -691,21 +753,34 @@ const MeetingRoom = () => {
                 />
                 {(!localStreamState || !isCameraEnabled) && (
                   <div className="video-placeholder">
-                    <div className="default-avatar-in-video">
-                      {user?.username?.charAt(0).toUpperCase() || 'U'}
-                    </div>
-                    <span>Camera Off</span>
+                    {user?.profilePictureUrl ? (
+                      <img src={user.profilePictureUrl} alt={user.username} className="profile-picture-in-video" />
+                    ) : (
+                      <div className="default-avatar-in-video">
+                        {(user?.username?.charAt(0) || 'U').toUpperCase()}
+                      </div>
+                    )}
+                    <span>{user?.username || 'You'}</span>
+                    {/* <span>Camera Off</span> */}
                   </div>
                 )}
               </div>
             )}
             {/* Render peer videos */}
-            {isShowingVideo && hasJoinedRoom && Object.entries(peers).map(([peerId, call]) => (
-              <div key={peerId} className="video-container">
-                <PeerVideo peerCall={call} />
-                {/* Placeholder for remote peer if their video is off could be added here if state is available */}
-              </div>
-            ))}
+            {isShowingVideo && hasJoinedRoom && Object.entries(peers).map(([peerId, call]) => {
+              const participantDetail = Object.values(participants).find(p => p.peerId === peerId);
+              const isRemoteEnabled = remoteCameraStatuses[peerId]; // Get signaled status
+              console.log(`[MeetingRoom Render PeerVideo] For PeerID: ${peerId}, Found Participant:`, participantDetail, "All Participants:", participants);              return (
+                <div key={peerId} className="video-container">
+                  <PeerVideo
+                    peerCall={call}
+                    username={participantDetail?.username}
+                    profilePictureUrl={participantDetail?.profilePictureUrl}
+                    isRemoteVideoEnabled={isRemoteEnabled} // Pass the signaled status
+                  />
+                </div>
+              );
+           })}
           </div>
 
           {/* Whiteboard Area */}
