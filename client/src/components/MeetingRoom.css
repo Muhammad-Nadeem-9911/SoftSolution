@@ -429,8 +429,8 @@
     align-items: center;
   }
   .video-grid.layout-1 > .video-container {
-    width: 90%; /* Or a percentage of the parent's height if aspect ratio is fixed */
-    height: 90%; /* Adjust as needed, aspect-ratio on container will manage proportions */
+    width: 100%; /* Or a percentage of the parent's height if aspect ratio is fixed */
+    height: 100%; /* Adjust as needed, aspect-ratio on container will manage proportions */
     max-width: 1280px; /* Optional max size */
     max-height: 720px; /* Optional max size */
   }
