@@ -160,13 +160,24 @@ io.on("connection", (socket) => {
         return;
       }
 
-      if (user.activeMeeting && user.activeMeeting.meetingId && user.activeMeeting.socketId !== socket.id) {
-        console.log(`User ${userId} attempted to join room ${roomId} but is already in meeting ${user.activeMeeting.meetingId} on socket ${user.activeMeeting.socketId}`);
-        socket.emit('join-room-error', {
-          message: `You are already in meeting ${user.activeMeeting.meetingId}. Please leave it before joining another.`,
-          activeMeetingId: user.activeMeeting.meetingId
-        });
-        return;
+      if (user.activeMeeting && user.activeMeeting.meetingId) {
+        // User is marked as in a meeting. Let's check the socket.
+        const oldSocketId = user.activeMeeting.socketId;
+        if (oldSocketId && oldSocketId !== socket.id) {
+          // Marked as in a meeting on a DIFFERENT socket.
+          // Check if that old socket is still connected.
+          const oldSocketInstance = io.sockets.sockets.get(oldSocketId);
+          if (oldSocketInstance && oldSocketInstance.connected) {
+            // The old socket is still active. User is genuinely in another meeting.
+            console.log(`User ${userId} attempted to join room ${roomId} but is already in meeting ${user.activeMeeting.meetingId} on ACTIVE socket ${oldSocketId}`);
+            socket.emit('join-room-error', {
+              message: `You are already in meeting ${user.activeMeeting.meetingId}. Please leave it before joining another.`,
+              activeMeetingId: user.activeMeeting.meetingId
+            });
+            return;
+          }
+          console.log(`User ${userId} was marked in meeting ${user.activeMeeting.meetingId} on STALE socket ${oldSocketId}. Allowing join with new socket ${socket.id}. The stale record should be cleared by its own disconnect/leave event.`);
+        }
       }
       userToJoin = user; // User is valid and not in another conflicting meeting
     } catch (error) {

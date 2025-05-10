@@ -435,16 +435,25 @@ const MeetingRoom = () => {
     }
   }, [messages]);
 
-  const participantCount = Object.keys(participants).length; // Derived state
+// Calculate total number of video tiles to display (1 for local + number of peers)
+  const totalVideoTiles = useMemo(() => {
+    if (!isShowingVideo) return 0;
+    return 1 + Object.keys(peers).length;
+  }, [isShowingVideo, peers]);
 
+  const participantCount = Object.keys(participants).length; // For participant list display
   // --- UI Handlers ---
   const getVideoLayoutClass = (count) => {
-    if (count === 1) return 'layout-1';
-    if (count === 2) return 'layout-2';
-    if (count >= 3 && count <= 4) return 'layout-4';
-    if (count >= 5 && count <= 6) return 'layout-6';
-    if (count >= 7 && count <= 9) return 'layout-9';
-    return 'layout-many';
+    if (!isShowingVideo) return ''; // No layout if videos are hidden
+
+    if (count === 1) return 'layout-1'; // Full box
+    if (count === 2) return 'layout-2'; // Side-by-side
+    if (count === 3) return 'layout-3'; // 2 top, 1 bottom centered
+    if (count === 4) return 'layout-4'; // 2x2 grid
+    if (count > 4) return 'layout-scrollable'; // Grid with scroll
+
+    // Fallback for 0 tiles, though this case should ideally not render the grid or have a specific placeholder
+    return 'layout-default'; // Or 'layout-1' if a single placeholder is always shown for 0 active videos
   };
 
   const toggleMainView = () => {
@@ -544,15 +553,7 @@ const MeetingRoom = () => {
     socketRef.current?.emit('signal:set-whiteboard-permission', { roomId, targetSocketId, hasControl: newPermissionState });
   };
 
-  // Calculate the number of participants for video grid layout
-  // Moved before early returns to comply with rules of hooks
-  const effectiveParticipantCountForLayout = useMemo(() => {
-    if (!isShowingVideo) return 0;
-    let count = 0;
-    if (localStreamState && isCameraEnabled) count++;
-    count += Object.keys(peers).length; // Add connected peers
-    return count;
-  }, [isShowingVideo, localStreamState, isCameraEnabled, peers]);
+  
 
   // --- Render Logic ---
   if (authLoading || !user) {
@@ -673,24 +674,37 @@ const MeetingRoom = () => {
         <div className="video-section">
           {/* Video Grid Area */}
           <div
-            className={`video-grid ${getVideoLayoutClass(effectiveParticipantCountForLayout)}`}
+            className={`video-grid ${getVideoLayoutClass(totalVideoTiles)}`}
             style={{ display: isShowingVideo ? 'flex' : 'none' }}
           >
-            {/* Render local video */}
-            {/* The local video element is always part of the grid if the grid is shown.
-                Its content (the stream) is managed by localStreamState and isCameraEnabled. */}
-            <video
-              key="local-user-video"
-              ref={myVideoRef}
-              className={`video-element self-video ${!localStreamState ? 'video-hidden-or-placeholder' : ''} ${!isCameraEnabled ? 'camera-off-placeholder' : ''}`}
-              muted
-              autoPlay
-              playsInline
-            />
+            
+            {/* Render local video tile */}
+            {isShowingVideo && (
+              <div className="video-container self-video-container">
+                <video
+                  key="local-user-video"
+                  ref={myVideoRef}
+                  className={`video-element ${(!localStreamState || !isCameraEnabled) ? 'video-hidden' : ''}`}
+                  muted
+                  autoPlay
+                  playsInline
+                />
+                {(!localStreamState || !isCameraEnabled) && (
+                  <div className="video-placeholder">
+                    <div className="default-avatar-in-video">
+                      {user?.username?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <span>Camera Off</span>
+                  </div>
+                )}
+              </div>
+            )}
             {/* Render peer videos */}
-            {/* Peers are rendered based on the 'peers' state, which is populated after connections */}
             {isShowingVideo && hasJoinedRoom && Object.entries(peers).map(([peerId, call]) => (
-              <PeerVideo key={peerId} peerCall={call} />
+              <div key={peerId} className="video-container">
+                <PeerVideo peerCall={call} />
+                {/* Placeholder for remote peer if their video is off could be added here if state is available */}
+              </div>
             ))}
           </div>
 
