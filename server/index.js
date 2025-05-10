@@ -20,9 +20,9 @@ app.use(cors({ origin: clientURL, credentials: true })); // Now clientURL is def
 app.use(express.static('public'));
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { // Assign the object to the 'cors' property  origin: clientURL,
-  origin: clientURL,
-  methods: ["GET", "POST"],
+  cors: {
+    origin: clientURL,
+    methods: ["GET", "POST"],
   }
 });
 
@@ -37,7 +37,7 @@ const generalLimiter = rateLimit({
 
 const signupLimiter = rateLimit({ // Stricter for signup
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 500, // TEMPORARILY INCREASED FOR DEVELOPMENT: Limit each IP to 500 signup attempts per hour
+    max: 5, // TEMPORARILY INCREASED FOR DEVELOPMENT: Limit each IP to 500 signup attempts per hour
     message: { msg: 'Too many accounts created from this IP (dev limit), please try again after an hour' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -422,7 +422,6 @@ io.on("connection", (socket) => {
 
 // ...
 const PORT = process.env.PORT || 5000; // Fallback for local dev
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running  on port ${PORT}`);
+server.listen(PORT, '0.0.0.0', () => { // Start the http server instance that io is attached to
+  console.log(`Server (including Socket.IO) running on port ${PORT}`);
 });
-
