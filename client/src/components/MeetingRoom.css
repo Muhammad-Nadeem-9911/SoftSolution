@@ -508,6 +508,7 @@
   /* Target the container for the self-video border */
   .video-container.self-video-container { /* Make it less specific to allow use outside direct video-grid child if needed */
     border: 2px solid #007bff;
+      transform: scaleX(-1); /* This mirrors the video */
   }
   
   
