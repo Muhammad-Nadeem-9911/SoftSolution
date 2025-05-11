@@ -906,16 +906,27 @@
     gap: 5px;
   }
 
-  /* Force 1 or 2 columns max */
-  .video-grid.layout-1 .video-element,
-  .video-grid.layout-2 .video-element,
-  .video-grid.layout-4 .video-element,
-  .video-grid.layout-6 .video-element,
-  .video-grid.layout-9 .video-element,
-  .video-grid.layout-many .video-element {
-    width: calc(50% - 3px); /* Max 2 videos per row */
-    /* Or uncomment below for single column */
-    /* width: 95%; */
+  /* For 1 user: Full width on small screens */
+  .video-grid.layout-1 > .video-container {
+    width: 100%; /* Full width */
+    /* height: 100%; /* Optional: if video-grid is also 100% height */
+  }
+
+  /* For 2 users: Two videos per row, */
+  .video-grid.layout-2 > .video-container {
+    width: calc(50% - 2.5px); /* Max 2 videos per row (5px gap / 2 = 2.5px) */
+    height: 100%;
+  }
+  /*For more than 2 users. scrollable on small screens */
+  .video-grid.layout-3 > .video-container, /* Assuming 2-col for layout-3 on mobile */
+  .video-grid.layout-4 > .video-container,
+  .video-grid.layout-6 > .video-container,
+  .video-grid.layout-9 > .video-container,
+  .video-grid.layout-many > .video-container,
+  .video-grid.layout-scrollable > .video-container {
+    width: calc(50% - 2.5px); /* Max 2 videos per row (5px gap / 2 = 2.5px) */
+    height: calc(50% - 2.5px);;
+    /* height: auto; /* Let aspect-ratio define height, which is default */
   }
 
   .media-controls {
