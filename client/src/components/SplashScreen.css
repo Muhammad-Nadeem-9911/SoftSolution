@@ -67,9 +67,12 @@
 
 @media (max-width: 480px) {
   .splash-logo {
-    max-width: 70%; /* Adjust logo size */
+    max-width: 85%; /* Adjust logo size */
   }
   .splash-tagline {
+    margin-top: -80px; /* Reset negative margin */
     font-size: 1.5rem; /* Adjust tagline size */
+    /* Optionally, add some space above the tagline if needed */
+    /* margin-top: 10px; */
   }
 }
