@@ -508,9 +508,13 @@
   /* Target the container for the self-video border */
   .video-container.self-video-container { /* Make it less specific to allow use outside direct video-grid child if needed */
     border: 2px solid #007bff;
-      transform: scaleX(-1); /* This mirrors the video */
+    /* transform: scaleX(-1); Removed from container */
   }
   
+  /* Apply mirror transform only to the visible video element within the self-video-container */
+  .video-container.self-video-container > .video-element:not(.video-hidden) {
+    transform: scaleX(-1); /* This mirrors the video */
+  }
   
   /* Scrollbar styling (optional, Webkit browsers) */
   ::-webkit-scrollbar {
